@@ -1,0 +1,342 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define all(a) (a).begin(), (a).end()
+using ll = long long;
+using ull = unsigned long long;
+using pii = pair<int, int>;
+using pil = pair<int, ll>;
+using pli = pair<ll, int>;
+using pll = pair<ll, ll>;
+using ld = long double;
+template<typename T1, typename T2> bool chkmin(T1 &x, T2 y) { return y < x ? (x = y, true) : false; }
+template<typename T1, typename T2> bool chkmax(T1 &x, T2 y) { return y > x ? (x = y, true) : false; }
+void debug_out() { cerr << endl; }
+template<typename T1, typename... T2> void debug_out(T1 A, T2... B) { cerr << ' ' << A; debug_out(B...); }
+template<typename T> void mdebug_out(T* a, int n) { for (int i = 0; i < n; ++i) cerr << a[i] << ' '; cerr << endl; }
+#ifdef DEBUG
+    #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+    #define mdebug(a, n) cerr << #a << ": ", mdebug_out(a, n)
+#else
+    #define debug(...) 1337
+    #define mdebug(...) 1337
+#endif
+template<typename T> ostream& operator << (ostream& stream, vector<T> &v) { for (auto x : v) stream << x << ' '; return stream; }
+template<typename T1, typename T2> ostream& operator << (ostream& stream, pair<T1, T2> &a) { return stream << a.fi << ' ' << a.se; }
+
+const int INF32 = 0x3f3f3f3f;
+const int logN = 17;
+const int N = 100005;
+int n;
+vector<int> G[N];
+int H[N], down[N], up1[N];
+int RHS[N];
+
+int getDiam()
+{
+    static int d[N], p[N];
+    static int q[N], qt;
+    auto bfs = [&](int v0)
+    {
+        for (int v = 1; v <= n; ++v)
+        {
+            d[v] = INF32;
+            p[v] = -1;
+        }
+        qt = 1;
+        q[0] = v0;
+        d[v0] = 0;
+        for (int i = 0; i < qt; ++i)
+        {
+            int v = q[i];
+            for (int &u : G[v])
+            {
+                if (chkmin(d[u], d[v] + 1))
+                {
+                    p[u] = v;
+                    q[qt++] = u;
+                }
+            }
+        }
+    };
+    bfs(1);
+    int max_v = 1;
+    for (int v = 2; v <= n; ++v)
+        if (d[v] > d[max_v]) 
+            max_v = v;
+    int v1 = max_v;
+    bfs(v1);
+    int v2 = 1;
+    for (int v = 2; v <= n; ++v)
+        if (d[v] > d[v2])
+            v2 = v;
+    if (d[v2] & 1) return -1;
+    int v = v2;
+    while (d[v] > d[v2] / 2)
+        v = p[v];
+    return v;
+}
+
+int v0;
+
+void dfs0(int v, int p = -1)
+{
+    down[v] = 0;
+    int maxv1 = -1;
+    int max2 = -1;
+    int maxv2 = -1;
+    for (int u : G[v]) if (u != p)
+    {
+        H[u] = H[v] + 1;
+        dfs0(u, v);
+        if (down[u] + 1 >= down[v])
+        {
+            max2 = down[v];
+            maxv2 = maxv1;
+            down[v] = down[u] + 1;
+            maxv1 = u;
+        }
+        else if (chkmax(max2, down[u] + 1))
+            maxv2 = u;
+    }
+    for (int u : G[v]) if (u != p)
+    {
+        up1[u] = 1 + (maxv1 != u ? down[v] : max2);
+    }
+    RHS[v] = up1[v] - H[v];
+}
+
+int up_v[logN][N], up_m[logN][N];
+void dfs1(int v, int p = -1)
+{
+    up_v[0][v] = p;
+    up_m[0][v] = -INF32;
+    for (int j = 1; j < logN && up_v[j - 1][v] != -1; ++j)
+    {
+        int w = up_v[j - 1][v];
+        up_v[j][v] = up_v[j - 1][w];
+        up_m[j][v] = max(RHS[w], max(up_m[j - 1][v], up_m[j - 1][w]));
+    }
+    for (int u : G[v]) if (u != p)
+    {
+        dfs1(u, v);
+    }
+}
+
+const int MEM = 1e7 + 7;
+int mem_n, mem_p[MEM], mem_v[MEM];
+
+int Set(int *x, int y)
+{
+    assert(mem_n < MEM);
+    if (*x == y) return y;
+    mem_p[mem_n] = (int)x;
+    mem_v[mem_n] = *x;
+    ++mem_n;
+    return *x = y;
+}
+
+void Backtrack(int old)
+{
+    while (mem_n > old)
+    {
+        --mem_n;
+        *((int*)mem_p[mem_n]) = mem_v[mem_n];
+    }
+}
+
+namespace sgt
+{
+    const int logN = 17;
+    const int NN = 1 << logN;
+    int rhs_push[2 * NN];
+    int max_lhs[2 * NN];
+    int min_dif[2 * NN];
+
+    void _init(int v, int vl, int vr)
+    {
+        rhs_push[v] = INF32;
+        max_lhs[v] = -INF32;
+        min_dif[v] = INF32;
+        if (vl != vr)
+        {
+            int vm = (vl + vr) >> 1;
+            _init(v << 1, vl, vm);
+            _init(v << 1 | 1, vm + 1, vr);
+        }
+    }
+
+    void init(int n)
+    {
+        mem_n = 0;
+        _init(1, 0, n - 1);
+    }
+
+    void apply(int v, int rhs)
+    {
+        Set(&rhs_push[v], rhs);
+        Set(&min_dif[v], rhs - max_lhs[v]);
+    }
+
+    void push(int v, int vl, int vr)
+    {
+        if (vl == vr || rhs_push[v] == INF32) return;
+        apply(v << 1, rhs_push[v]);
+        apply(v << 1 | 1, rhs_push[v]);
+        Set(&rhs_push[v], INF32);
+    }
+
+    void upd(int v, int vl, int vr)
+    {
+        if (vl == vr) return;
+        Set(&max_lhs[v], max(max_lhs[v << 1], max_lhs[v << 1 | 1]));
+        Set(&min_dif[v], min(min_dif[v << 1], min_dif[v << 1 | 1]));
+    }
+
+    void apply(int v, int vl, int vr, int l, int r, int rhs)
+    {
+        if (l > r || vr < l || r < vl) return;
+        if (l <= vl && vr <= r)
+        {
+            apply(v, rhs);
+            return;
+        }
+        int vm = (vl + vr) >> 1;
+        push(v, vl, vr);
+        apply(v << 1, vl, vm, l, r, rhs);
+        apply(v << 1 | 1, vm + 1, vr, l, r, rhs);
+        upd(v, vl, vr);
+    }
+
+    void enable_pt(int v, int vl, int vr, int i, int lhs)
+    {
+        if (vl == vr)
+        {
+            Set(&max_lhs[v], lhs);
+            Set(&rhs_push[v], -INF32);
+            Set(&min_dif[v], rhs_push[v] - max_lhs[v]);
+            return;
+        }
+        int vm = (vl + vr) >> 1;
+        push(v, vl, vr);
+        if (i <= vm)
+            enable_pt(v << 1, vl, vm, i, lhs);
+        else
+            enable_pt(v << 1 | 1, vm + 1, vr, i, lhs);
+        upd(v, vl, vr);
+    }
+
+    int rmq(int v, int vl, int vr, int l, int r)
+    {
+        if (l > r || vr < l || r < vl) return INF32;
+        if (l <= vl && vr <= r) return min_dif[v];
+        int vm = (vl + vr) >> 1;
+        push(v, vl, vr);
+        return min(rmq(v << 1, vl, vm, l, r), rmq(v << 1 | 1, vm + 1, vr, l, r));
+    }
+
+    void dbg(int v, int vl, int vr, int sz)
+    {
+        if (vl >= sz) return;
+        if (vl == vr)
+        {
+            cerr << vl << ":  lhs = " << max_lhs[v] << " rhs = " << rhs_push[v] << endl;
+            return;
+        }
+        int vm = (vl + vr) >> 1;
+        push(v, vl, vr);
+        dbg(v << 1, vl, vm, sz);
+        dbg(v << 1 | 1, vm + 1, vr, sz);
+    }
+}
+
+int path[N], sz;
+bool win2;
+void dfs(int v, int p = -1)
+{
+    if (win2) return;
+    path[sz++] = v;
+    int u = v;
+    for (int j = logN - 1; j >= 0; --j)
+        if (up_v[j][u] != -1 && up_m[j][u] < RHS[v])
+            u = up_v[j][u];
+    u = up_v[0][u];
+    int L = (u != -1 ? H[u] - 1 : 0);
+    int R = H[v] - 2;
+//    debug(v, L, R);
+    if (L <= R)
+        sgt::apply(1, 0, n - 1, L, R, RHS[v]);
+    if (p != -1)
+    {
+        sgt::enable_pt(1, 0, n - 1, sz - 2, up1[v] + H[p]);
+    }
+    /*debug(v);
+    debug(sz);
+    sgt::dbg(1, 0, n - 1, sz);*/
+    if (v != v0)
+    {
+//        debug(v, sgt::rmq(1, 0, n - 1, 0, H[v] / 2));
+        bool win1 = sgt::rmq(1, 0, n - 1, 0, H[v] / 2) < -H[v];
+        if (!win1)
+            win2 = true;
+    }
+    int cur_mem = mem_n;
+    for (int u : G[v]) if (u != p)
+    {
+        dfs(u, v);
+        Backtrack(cur_mem);
+    }
+    sz--;
+}
+
+signed main()
+{
+#ifdef DEBUG
+    freopen("in", "r", stdin);
+#endif
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int tests;
+    cin >> tests;
+    while (tests--)
+    {
+        cin >> n;
+        for (int v = 1; v <= n; ++v) G[v].clear();
+        for (int i = 0; i < n - 1; ++i)
+        {
+            int a, b;
+            cin >> a >> b;
+            G[a].push_back(b);
+            G[b].push_back(a);
+        }
+        v0 = getDiam();
+        if (v0 == -1)
+        {
+            cout << "No\n";
+            continue;
+        }
+        H[v0] = 0;
+        up1[v0] = 0;
+        dfs0(v0);
+        for (int j = 0; j < logN; ++j)
+            fill(up_v[j], up_v[j] + n + 1, -1);
+        dfs1(v0);
+        sz = 0;
+        win2 = false;
+        mem_n = 0;
+        sgt::init(n);
+        dfs(v0);
+        if (!win2)
+            cout << "Yes\n";
+        else
+            cout << "No\n";
+    }
+
+    return 0;
+}

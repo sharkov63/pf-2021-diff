@@ -1,0 +1,82 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define all(a) (a).begin(), (a).end()
+typedef long long ll;
+typedef unsigned long long ull;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef long double ld;
+template<typename T1, typename T2> bool chkmin(T1 &x, T2 y) { return y < x ? (x = y, true) : false; }
+template<typename T1, typename T2> bool chkmax(T1 &x, T2 y) { return y > x ? (x = y, true) : false; }
+void debug_out()
+{
+    cerr << endl;
+}
+template<typename T1, typename... T2> void debug_out(T1 A, T2... B)
+{
+    cerr << ' ' << A;
+    debug_out(B...);
+}
+#ifdef DEBUG
+    #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+#else
+    #define debug(...) 1337
+#endif
+
+
+signed main()
+{
+#ifdef DEBUG
+    freopen("in", "r", stdin);
+#endif
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+    vector<int> L(m);
+    ll sum = 0;
+    for (auto &x : L)
+    {
+        cin >> x;
+        sum += x;
+    }
+    if (sum < n)
+    {
+        cout << "-1\n";
+        exit(0);
+    }
+    vector<int> pos(m, -1);
+    pos[m - 1] = 0;
+    for (int i = m - 2; i >= 0; --i)
+    {
+        pos[i] = max(0, pos[i + 1] + L[i + 1] - L[i] + 1);
+        if (pos[i] + L[i] - 1 >= n)
+        {
+            cout << "-1\n";
+            exit(0);
+        }
+    }
+    int last = n;
+    for (int i = 0; i < m; ++i)
+    {
+        chkmax(pos[i], last - L[i]);
+        last = pos[i];
+    }
+    if (pos[m - 1] > 0)
+    {
+        cout << "-1\n";
+        exit(0);
+    }
+    for (int i = 0; i < m; ++i)
+        cout << pos[i] + 1 << ' ';
+    cout << '\n';
+
+    return 0;
+}

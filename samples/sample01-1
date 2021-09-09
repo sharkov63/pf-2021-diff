@@ -1,0 +1,511 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <iomanip>
+#include <algorithm>
+#include <numeric>
+#include <time.h>
+#include <assert.h>
+#include <functional>
+#include <map>
+#include <math.h>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define all(a) (a).begin(), (a).end()
+using ll = long long;
+using ull = unsigned long long;
+using pii = pair<int, int>;
+using pil = pair<int, ll>;
+using pli = pair<ll, int>;
+using pll = pair<ll, ll>;
+using ld = long double;
+template<typename T1, typename T2> bool chkmin(T1 &x, T2 y) {
+  return y < x ? (x = y, true) : false; 
+}
+template<typename T1, typename T2> bool chkmax(T1 &x, T2 y) {
+  return y > x ? (x = y, true) : false;
+}
+void debug_out() {
+  cerr << endl;
+}
+template<typename T1, typename... T2> void debug_out(T1 A, T2... B) {
+  cerr << ' ' << A;
+  debug_out(B...);
+}
+template<typename T> void mdebug_out(T* a, int n) {
+  for (int i = 0; i < n; ++i) {
+    cerr << a[i] << ' ';
+  }
+  cerr << endl;
+}
+#ifdef DEBUG
+  #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+  #define mdebug(a, n) cerr << #a << ": ", mdebug_out(a, n)
+#else
+  #define debug(...) 1337
+  #define mdebug(a, n) 1337
+#endif
+template<typename T> ostream& operator << (ostream& stream, const vector<T> &v) {
+  for (auto& x : v) {
+    stream << x << ' ';
+  }
+  return stream;
+}
+template<typename T1, typename T2> ostream& operator << (ostream& stream, const pair<T1, T2>& p) {
+  return stream << p.first << ' ' << p.second;
+}
+
+
+const double eps = 1e-4;
+
+#define vec pt
+struct pt {
+  double x, y;
+
+  pt(double _x = 0, double _y = 0): x(_x), y(_y) {}
+  vec(const pt& A, const pt& B): x(B.x - A.x), y(B.y - A.y) {}
+
+  pt operator + (const pt& p) const { return pt(x + p.x, y + p.y); }
+  pt operator - (const pt& p) const { return pt(x - p.x, y - p.y); }
+  double operator * (const pt& p) const { return x * p.x + y * p.y; }
+  double operator % (const pt& p) const { return x * p.y - y * p.x; }
+  pt operator * (double k) const { return pt(k * x, k * y); }
+
+  double len() { return sqrt(x * x + y * y); }
+
+  bool operator == (const pt& p) const { return fabs(x - p.x) < eps && fabs(y - p.y) < eps; }
+};
+ostream& operator << (ostream& stream, const pt& P) {
+  return stream << P.x << ' ' << P.y;
+}
+
+struct Poly {
+  int n;
+  vector<pt> P;
+  int idx;
+
+  Poly() {}
+  Poly(pt A, pt B, pt C, int _idx) {
+    n = 3;
+    P = {A, B, C};
+    idx = _idx;
+  }
+  Poly(pt A, pt B, pt C, pt D, int _idx) {
+    n = 4;
+    P = {A, B, C, D};
+    idx = _idx;
+  }
+  Poly(pt A, pt B, pt C, pt D, pt E, int _idx) {
+    n = 5;
+    P = {A, B, C, D, E};
+    idx = _idx;
+  }
+  Poly(const Poly& oth, int _idx) {
+    idx = _idx;
+    n = oth.n;
+    P = vector<pt>(all(oth.P));
+  }
+
+  void read() {
+    cin >> n;
+    P.resize(n);
+    idx = 0;
+    for (auto& A : P) cin >> A.x >> A.y;
+  }
+};
+ostream& operator << (ostream& stream, const Poly& P) {
+  stream << P.n << ' ';
+  for (auto& A : P.P) {
+    stream << A << ' ';
+  }
+  return stream;
+}
+
+struct Operation {
+  Poly P;
+  vector<Poly> Q;
+
+  int dir; // 0 merge, 1 split
+
+  Operation(vector<Poly> _Q, Poly _P) {
+    dir = 0;
+    Q = _Q;
+    P = _P;
+  }
+  Operation(Poly _P, vector<Poly> _Q) {
+    dir = 1;
+    P = _P;
+    Q = _Q;
+  }
+};
+ostream& operator << (ostream& stream, const Operation& oper) {
+  if (oper.dir == 0) {
+    stream << "tape\n";
+    stream << oper.Q.size() << ' ';
+    for (auto& T : oper.Q) {
+      stream << T.idx << ' ';
+    }
+    stream << '\n';
+    for (auto& T : oper.Q) {
+      stream << T << '\n';
+    }
+    stream << oper.P << '\n';
+  } else {
+    stream << "scissors\n";
+    stream << oper.P.idx << ' ' << oper.Q.size() << '\n';
+    for (auto& T : oper.Q) {
+      stream << T << '\n';
+    }
+  }
+  return stream;
+}
+
+bool reverseAll;
+
+Poly SetHeightRect(Poly R, double h, vector<Operation>& history, int& idx) { // R is a nice rectangle
+  double x = R.P[2].x;
+  double y = R.P[2].y;
+  while (y >= 2 * h) {
+    // divide by half
+    auto L = Poly({0, 0}, {x, 0}, {x, y / 2}, {0, y / 2}, ++idx);
+    auto H = Poly({0, y / 2}, {x, y / 2}, {x, y}, {0, y}, ++idx);
+    history.push_back(Operation(R, {L, H}));
+
+    Poly H1 = Poly({x, 0}, {2 * x, 0}, {2 * x, y / 2}, {x, y / 2}, ++idx);
+    if (reverseAll) {
+      history.push_back(Operation({Poly(H, H1.idx)}, H));
+    } else {
+      H1.idx = H.idx;
+      --idx;
+    }
+    auto R1 = Poly({0, 0}, {2 * x, 0}, {2 * x, y / 2}, {0, y / 2}, ++idx);
+    history.push_back(Operation({L, H1}, R1));
+
+    x *= 2;
+    y /= 2;
+    R = R1;
+  }
+
+  if (y <= h) {
+    return R;
+  }
+
+  auto A = Poly({0, 0}, {x, 0}, {x, y - h}, {x * y / h - x, h}, {0, h}, ++idx);
+  auto B = Poly({x, y - h}, {x, y}, {0, y}, ++idx);
+  auto C = Poly({0, h}, {x * y / h - x, h}, {0, y}, ++idx);
+  history.push_back(Operation(R, {A, B, C}));
+
+  auto B1 = Poly({x * y / h, 0}, {x * y / h, h}, {x * y / h - x, h}, ++idx);
+  auto C1 = Poly({x, 0}, {x * y / h, 0}, {x, y - h}, ++idx);
+  if (reverseAll) {
+    history.push_back(Operation({Poly(B, B1.idx)}, B));
+    history.push_back(Operation({Poly(C, C1.idx)}, C));
+  } else {
+    B1.idx = B.idx;
+    C1.idx = C.idx;
+    idx -= 2;
+  }
+  auto R1 = Poly({0, 0}, {x * y / h, 0}, {x * y / h, h}, {0, h}, ++idx);
+  history.push_back(Operation({A, B1, C1}, R1));
+
+  return R1;
+}
+
+bool strictly_inside_triangle(pt E, pt A, pt B, pt C) {
+  vec AB(A, B), BC(B, C), CA(C, A);
+  vec AE(A, E), BE(B, E), CE(C, E);
+  return AB % AE > 0 && BC % BE > 0 && CA % CE > 0;
+}
+
+int in_seg(pt P, pt A, pt B) {
+  if (P == A || P == B) return 1;
+  vec AB(A, B), AP(A, P), BP(B, P);
+  return (fabs(AB % AP) < eps && AB * AP > 0 && AB * BP < 0 ? 2 : 0);
+}
+
+vector<Poly> triangulate(Poly P, int& idx) {
+  vector<Poly> triangles;
+  while (P.n > 3) {
+    for (int i = 0; i < P.n; ++i) {
+      pt A = P.P[(i - 1 + P.n) % P.n];
+      pt B = P.P[i];
+      pt C = P.P[(i + 1) % P.n];
+      vec AB(A, B), BC(B, C);
+      if (AB % BC >= 0) {
+        if (all_of(all(P.P), [&](pt E) -> bool { return !strictly_inside_triangle(E, A, B, C); })) {
+          triangles.push_back(Poly(A, B, C, ++idx));
+          P.P.erase(P.P.begin() + i);
+          P.n--;
+          break;
+        }
+      }
+    }
+  }
+  triangles.push_back(Poly(P.P[0], P.P[1], P.P[2], ++idx));
+  return triangles;
+}
+
+void Reverse(vector<Operation>& history, int& idx) {
+  reverse(all(history));
+  map<int, int> mapping;
+  auto gt = [&](int x) -> int {
+    if (mapping.count(x)) return mapping[x];
+    return mapping[x] = idx++;
+  };
+  for (auto& oper : history) {
+    oper.dir ^= 1;
+    if (oper.Q.size() == 1) oper.dir = 0;
+    oper.P.idx = gt(oper.P.idx);
+    for (auto& T : oper.Q) {
+      T.idx = gt(T.idx);
+    }
+  }
+  --idx;
+}
+
+void SolveTwoNiceRects(Poly S, Poly T, vector<Operation>& history, int& idx) {
+  double sy = S.P[2].y;
+  double ty = T.P[2].y;
+  if (sy == ty) return;
+  if (sy > ty) {
+    reverseAll = false;
+    SetHeightRect(S, ty, history, idx);
+  } else {
+    reverseAll = true;
+    int idx1 = 0;
+    vector<Operation> history1;
+    SetHeightRect(T, sy, history1, idx1);
+    Reverse(history1, idx);
+    for (auto oper : history1) {
+      history.push_back(oper);
+    }
+  }
+}
+
+Poly NormalizeRightTriangle(pt A, pt B, pt C, int& idx) {
+  vec CA(C, A), CB(C, B);
+  double x = CA.len(), y = CB.len();
+  return Poly({0, 0}, {x, 0}, {0, y}, ++idx);
+}
+
+Poly CombineRectangles(Poly S, Poly T, vector<Operation>& history, int& idx) {
+  double sy = S.P[2].y;
+  double ty = T.P[2].y;
+  if (fabs(sy - ty) >= eps) {
+    if (sy < ty) {
+      swap(S, T);
+      swap(sy, ty);
+    }
+
+    S = SetHeightRect(S, ty, history, idx);
+  }
+  double sx = S.P[2].x;
+  double tx = T.P[2].x;
+  Poly T1({sx, 0}, {sx + tx, 0}, {sx + tx, ty}, {sx, ty}, ++idx);
+  if (reverseAll) {
+    history.push_back(Operation({Poly(T, T1.idx)}, T));
+  } else {
+    T1.idx = T.idx;
+    --idx;
+  }
+  Poly U({0, 0}, {sx + tx, 0}, {sx + tx, ty}, {0, ty}, ++idx);
+  history.push_back(Operation({S, T1}, U));
+  return U;
+}
+
+void SquareRectangle(Poly& R, vector<Operation>& history, int& idx) {
+  R = SetHeightRect(R, sqrt(R.P[2].x * R.P[2].y), history, idx);
+} 
+
+Poly MakeRect(Poly P0, vector<Operation>& history, int& idx) {
+//  if (reverseAll) return P0;
+  auto triangulation = triangulate(P0, idx);
+  history.push_back(Operation(P0, triangulation));
+
+  int stupidOperId = history.size() - 1;
+
+  // make right triangles
+  vector<Poly> right_triangles;
+  for (auto& T : triangulation) {
+    // check if already right
+    bool Right = false;
+    vector<int> perm = {0, 1, 2};
+    for (int i = 0; i < 3; ++i) {
+      pt A = T.P[i];
+      pt B = T.P[(i + 1) % 3];
+      pt C = T.P[(i + 2) % 3];
+      vec CA(C, A), CB(C, B);
+      if (fabs(CA * CB) < eps) {
+        Right = true;
+
+        Poly T1 = NormalizeRightTriangle(A, B, C, idx);
+        vector<pt> ordPoints = {T1.P[1], T1.P[2], T1.P[0]};
+
+        if (!reverseAll) {
+          Poly T1_0 = Poly(ordPoints[perm[0]], ordPoints[perm[1]], ordPoints[perm[2]], T.idx);
+          Poly T1_1 = Poly(ordPoints[perm[0]], ordPoints[perm[1]], ordPoints[perm[2]], T1.idx);
+          history.push_back(Operation({T1_0}, T1_1));
+        } else {
+          vector<int> inv_perm(3);
+          for (int i = 0; i < 3; ++i) {
+            inv_perm[perm[i]] = i;
+          }
+          Poly T1_0 = Poly(T.P[perm[0]], T.P[perm[1]], T.P[perm[2]], T.idx);
+          Poly T1_1 = Poly(T.P[perm[0]], T.P[perm[1]], T.P[perm[2]], T1.idx);
+          history.push_back(Operation({T1_1}, T1_0));
+
+          for (auto& P : history[stupidOperId].Q) {
+            if (P.idx == T.idx) {
+              P.P = {T.P[perm[0]], T.P[perm[1]], T.P[perm[2]]};
+            }
+          }
+        }
+        right_triangles.push_back(T1);
+      }
+      rotate(perm.begin(), perm.end() - 1, perm.end());
+    }
+    if (!Right) {
+      for (int i = 0; i < 3; ++i) {
+        pt A = T.P[i];
+        pt B = T.P[(i + 1) % 3];
+        pt C = T.P[(i + 2) % 3];
+        vec BA(B, A), BC(B, C);
+        double k = (BA * BC) / (BC * BC);
+        pt H = B + BC * k;
+        if (in_seg(H, B, C) == 0) continue;
+        assert(in_seg(H, B, C) != 1);
+
+        Poly E, F;
+        if (!reverseAll) {
+          E = Poly(A, B, H, ++idx);
+          F = Poly(C, A, H, ++idx);
+          history.push_back(Operation(T, {E, F}));
+        } else {
+          E = Poly(H, A, B, ++idx);
+          F = Poly(H, C, A, ++idx);
+          history.push_back(Operation(T, {E, F}));
+          E.P = {A, B, H};
+          F.P = {C, A, H};
+        }
+
+        auto E1 = NormalizeRightTriangle(A, B, H, idx);
+        auto E1_0 = Poly(E1.P[1], E1.P[2], E1.P[0], E.idx);
+        auto E1_1 = Poly(E1.P[1], E1.P[2], E1.P[0], E1.idx);
+        if (!reverseAll) {
+          history.push_back(Operation({E1_0}, E1_1));
+        } else {
+          Poly E2 = Poly(E.P[2], E.P[0], E.P[1], E.idx);
+          history.push_back(Operation({Poly(E2, E1.idx)}, E2));
+        }
+        right_triangles.push_back(E1);
+
+        auto F1 = NormalizeRightTriangle(C, A, H, idx);
+        auto F1_0 = Poly(F1.P[1], F1.P[2], F1.P[0], F.idx);
+        auto F1_1 = Poly(F1.P[1], F1.P[2], F1.P[0], F1.idx);
+        if (!reverseAll) {
+          history.push_back(Operation({F1_0}, F1_1));
+        } else {
+          Poly F2 = Poly(F.P[2], F.P[0], F.P[1], F.idx);
+          history.push_back(Operation({Poly(F2, F1.idx)}, F2));
+        }
+        right_triangles.push_back(F1);
+
+        break;
+      }
+    }
+  }
+
+  // make rectangles
+  vector<Poly> rectangles;
+  for (auto& T : right_triangles) {
+    double x = T.P[1].x;
+    double y = T.P[2].y;
+    
+    Poly E({0, 0}, {x / 2, 0}, {x / 2, y / 2}, {0, y}, ++idx);
+    Poly F({x / 2, 0}, {x, 0}, {x / 2, y / 2}, ++idx);
+    history.push_back(Operation(T, {E, F}));
+
+    Poly F1({x / 2, y}, {0, y}, {x / 2, y / 2}, ++idx);
+    if (reverseAll) {
+      history.push_back(Operation({Poly(F, F1.idx)}, F));
+    } else {
+      F1.idx = F.idx;
+      --idx;
+    }
+    Poly R({0, 0}, {x / 2, 0}, {x / 2, y}, {0, y}, ++idx);
+    history.push_back(Operation({E, F1}, R));
+
+    rectangles.push_back(R);
+  }
+
+  // combine everything into one rectangle
+  sort(all(rectangles), [&](const Poly& lhs, const Poly& rhs) -> bool {
+    return lhs.P[2].x * lhs.P[2].y < rhs.P[2].x * lhs.P[2].y;
+  });
+  Poly R = rectangles[0];
+  SquareRectangle(R, history, idx);
+  for (int i = 1; i < rectangles.size(); ++i) {
+    SquareRectangle(rectangles[i], history, idx);
+    R = CombineRectangles(R, rectangles[i], history, idx);
+    SquareRectangle(R, history, idx);
+  }
+  return R;
+}
+
+int32_t main() {
+#ifdef DEBUG
+  freopen("in", "r", stdin);
+#endif
+  ios::sync_with_stdio(0);
+  cin.tie(0);
+  #ifndef DEBUG
+  cout.precision(12);
+  cout << fixed;
+  #endif
+
+  /*Poly S, T;
+  S.read();
+  T.read();
+  vector<Operation> history;
+  int idx = 0;
+  SolveTwoNiceRects(S, T, history, idx);
+  for (auto oper : history) {
+    cout << oper << '\n';
+  }*/
+
+  Poly P1;
+  P1.read();
+  int idx1 = 0;
+  vector<Operation> h1;
+  reverseAll = false;
+  auto R1 = MakeRect(P1, h1, idx1);
+
+  Poly P2;
+  P2.read();
+  int idx2 = 0;
+  vector<Operation> h2;
+  reverseAll = true;
+  auto R2 = MakeRect(P2, h2, idx2);
+
+  /*for (auto& oper : h2) {
+    cout << oper << '\n';
+  }*/
+
+  SolveTwoNiceRects(R1, R2, h1, idx1);
+  Reverse(h2, idx1);
+  for (auto oper : h2) h1.push_back(oper);/**/
+
+  for (auto& oper : h1) {
+    cout << oper << '\n';
+  }/**/
+
+  debug(h1[51 - 1]);
+
+
+  return 0;
+}

@@ -1,0 +1,445 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define all(a) (a).begin(), (a).end()
+using ll = long long;
+using ull = unsigned long long;
+using pii = pair<int, int>;
+using pil = pair<int, ll>;
+using pli = pair<ll, int>;
+using pll = pair<ll, ll>;
+using ld = long double;
+template<typename T1, typename T2> bool chkmin(T1 &x, T2 y) { return y < x ? (x = y, true) : false; }
+template<typename T1, typename T2> bool chkmax(T1 &x, T2 y) { return y > x ? (x = y, true) : false; }
+void debug_out() { cerr << endl; }
+template<typename T1, typename... T2> void debug_out(T1 A, T2... B) { cerr << ' ' << A; debug_out(B...); }
+template<typename T> void mdebug_out(T* a, int n) { for (int i = 0; i < n; ++i) cerr << a[i] << ' '; cerr << endl; }
+#ifdef DEBUG
+    #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+    #define mdebug(a, n) cerr << #a << ": ", mdebug_out(a, n)
+#else
+    #define debug(...) 1337
+    #define mdebug(...) 1337
+#endif
+template<typename T> ostream& operator << (ostream& stream, vector<T> &v) { for (auto x : v) stream << x << ' '; return stream; }
+template<typename T1, typename T2> ostream& operator << (ostream& stream, pair<T1, T2> &a) { return stream << a.fi << ' ' << a.se; }
+
+const int M = 998244353;
+struct fp
+{
+    int a;
+    
+    fp(): a(0) {}
+    fp(ll _a)
+    {
+        a = _a % M;
+        if (a < 0)
+            a += M;
+    }
+    fp(const fp& oth): a(oth.a) {}
+
+    fp& operator += (const fp& oth) { if ((a += oth.a) >= M) a -= M; return *this; }
+    fp& operator -= (const fp& oth) { if ((a -= oth.a) < 0) a += M; return *this; }
+    fp& operator *= (const fp& oth) { a = a * (ll)oth.a % M; return *this; }
+};
+fp operator + (const fp& lhs, const fp& rhs) { return fp(lhs) += rhs; }
+fp operator - (const fp& lhs, const fp& rhs) { return fp(lhs) -= rhs; }
+fp operator * (const fp& lhs, const fp& rhs) { return fp(lhs) *= rhs; }
+
+
+#ifdef DEBUG
+const int maxV = 1000;
+#else
+const int maxV = 1200106;
+#endif
+
+fp pw2[maxV];
+vector<pii> G[800100];
+int deg[maxV];
+int cur_v[400105];
+bool used[maxV];
+
+struct List
+{
+    int nxt[maxV], prv[maxV];
+
+    List()
+    {
+        memset(nxt, 255, sizeof nxt);
+        memset(prv, 255, sizeof prv);
+    }
+
+    void pushFront(int& bg, int& en, int v)
+    {
+        if (bg == -1)
+        {
+            bg = en = v;
+            return;
+        }
+        prv[bg] = v;
+        nxt[v] = bg;
+        bg = v;
+    }
+    void pushBack(int& bg, int& en, int v)
+    {
+        if (en == -1)
+        {
+            bg = en = v;
+            return;
+        }
+        nxt[en] = v;
+        prv[v] = en;
+        en = v;
+    }
+    int popFront(int& bg, int& en)
+    {
+        if (bg == -1) return -1;
+        int v = bg;
+        bg = nxt[v];
+        nxt[v] = -1;
+        if (bg == -1)
+        {
+            en = -1;
+        }
+        else
+        {
+            prv[bg] = -1;
+        }
+        return v;
+    }
+    int popBack(int& bg, int& en)
+    {
+        if (en == -1) return -1;
+        int v = en;
+        en = prv[v];
+        prv[v] = -1;
+        if (en == -1)
+        {
+            bg = -1;
+        }
+        else
+        {
+            nxt[en] = -1;
+        }
+        return v;
+    }
+} path, edge;
+
+int where[maxV];
+int path_bg[maxV];
+int path_en[maxV];
+int path_sz[maxV];
+int edge_bg[maxV];
+int edge_en[maxV];
+fp H[maxV][2];
+bool badPath[maxV];
+int col[maxV];
+int ncol[maxV];
+
+signed main()
+{
+#ifdef DEBUG
+    freopen("in", "r", stdin);
+#endif
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    pw2[0] = 1;
+    for (int i = 1; i < maxV; ++i)
+        pw2[i] = pw2[i - 1] * 2;
+
+    int n1, n2, m;
+    cin >> n1 >> n2 >> m;
+    int n = n1 + n2;
+    iota(cur_v, cur_v + n, 0);
+    for (int i = 1; i <= m; ++i)
+    {
+        int a, b;
+        cin >> a >> b;
+        --a;
+        --b;
+        b += n1;
+        
+        if (G[cur_v[a]].size() == 2)
+        {
+            cur_v[a] = n++;
+        }
+        if (G[cur_v[b]].size() == 2)
+        {
+            cur_v[b] = n++;
+        }
+
+        G[cur_v[a]].pb({cur_v[b], i});
+        G[cur_v[b]].pb({cur_v[a], i});
+    }
+    for (int v = 0; v < n; ++v)
+    {
+        deg[v] = G[v].size();
+        G[v].shrink_to_fit();
+    }
+
+    fp curHash = 0;
+    memset(where, 255, sizeof where);
+    memset(col, 255, sizeof col);
+    memset(path_bg, 255, sizeof path_bg);
+    memset(path_en, 255, sizeof path_en);
+    memset(edge_bg, 255, sizeof edge_bg);
+    memset(edge_en, 255, sizeof edge_en);
+    int paths = 0;
+    for (int v = 0; v < n; ++v) if (G[v].size() == 1 && !used[v])
+    {
+        function<void(int)> dfs = [&](int v)
+        {
+            used[v] = 1;
+            where[v] = paths;
+            ++path_sz[paths];
+            path.pushBack(path_bg[paths], path_en[paths], v);
+            for (pii e : G[v])
+            {
+                int u = e.fi;
+                int i = e.se;
+                if (used[u]) continue;
+                
+                edge.pushBack(edge_bg[paths], edge_en[paths], i);
+
+                if (path_sz[paths] & 1)
+                    H[paths][0] += pw2[i];
+                else
+                    H[paths][1] += pw2[i];
+
+                dfs(u);
+            }
+        };
+        dfs(v);
+        curHash += H[paths][0];
+        ++paths;
+    }
+    for (int v = 0; v < n; ++v) if (!used[v] && G[v].size() == 2)
+    {
+        int t = 0;
+        int sz = 0;
+        function<void(int, int)> dfs = [&](int v, int p)
+        {
+            used[v] = true;
+            ++sz;
+            for (pii e : G[v])
+            {
+                int u = e.fi;
+                int i = e.se;
+                if (u == p || col[i] != -1) continue;
+                col[i] = t & 1;
+                t ^= 1;
+                if (!col[i])
+                    curHash += pw2[i];
+                if (!used[u]) dfs(u, v);
+            }
+        };
+        dfs(v, -1);
+        assert(~sz & 1);
+    }
+    for (int v = 0; v < n; ++v) if (!used[v] && G[v].size() == 0)
+    {
+        path_bg[paths] = path_en[paths] = v;
+        path_sz[paths] = 1;
+        where[v] = paths;
+        ++paths;
+    }
+    /*debug(n);
+    mdebug(where, n);
+    mdebug(col + 1, m);
+    debug(paths);
+    for (int p = 0; p < paths; ++p) if (!badPath[p])
+    {
+        debug(p);
+        cerr << "vtx: ";
+        for (int v = path_bg[p]; v != -1; v = path.nxt[v])
+            cerr << v << ' ';
+        cerr << endl;
+        cerr << "edges: ";
+        for (int e = edge_bg[p]; e != -1; e = edge.nxt[e])
+            cerr << e << ' ';
+        cerr << endl;
+    }
+    debug(curHash.a);/**/
+
+    int Q;
+    cin >> Q;
+    int edge_num = m + 1;
+    while (Q--)
+    {
+        int cmd;
+        cin >> cmd;
+        if (cmd == 1)
+        {
+            int a, b;
+            cin >> a >> b;
+            --a;
+            --b;
+            b += n1;
+//            debug(a, b);
+            int u = cur_v[a];
+            int v = cur_v[b];
+            if (deg[u] == 2)
+            {
+                cur_v[a] = n++;
+                u = cur_v[a];
+                path_bg[paths] = path_en[paths] = u;
+                path_sz[paths] = 1;
+                where[u] = paths;
+                ++paths;
+            }
+            if (deg[v] == 2)
+            {
+                cur_v[b] = n++;
+                v = cur_v[b];
+                path_bg[paths] = path_en[paths] = v;
+                path_sz[paths] = 1;
+                where[v] = paths;
+                ++paths;
+            }
+            ++deg[u];
+            ++deg[v];
+            int p1 = where[u];
+            int p2 = where[v];
+            /*debug(u, v);
+            debug(p1, p2);*/
+            if (path_sz[p1] < path_sz[p2])
+            {
+                swap(p1, p2);
+                swap(u, v);
+                swap(a, b);
+            }
+            if (p1 != p2)
+            {
+                function<void(int, int)> add;
+                function<pii()> rem;
+                if (u != path_en[p1])
+                {
+                    add = [&](int v, int i)
+                    {
+                        path.pushFront(path_bg[p1], path_en[p1], v);
+                        edge.pushFront(edge_bg[p1], edge_bg[p1], i);
+                        ++path_sz[p1];
+                        swap(H[p1][0], H[p1][1]);
+                        H[p1][0] += pw2[i];
+                    };
+                }
+                else
+                {
+                    assert(u == path_en[p1]);
+                    add = [&](int v, int i)
+                    {
+                        path.pushBack(path_bg[p1], path_en[p1], v);
+                        edge.pushBack(edge_bg[p1], edge_bg[p1], i);
+                        ++path_sz[p1];
+                        if (~path_sz[p1] & 1)
+                            H[p1][0] += pw2[i];
+                        else
+                            H[p1][1] += pw2[i];
+                    };
+                }
+                if (v != path_en[p2])
+                {
+                    rem = [&]() -> pii
+                    {
+                        int v = path.popFront(path_bg[p2], path_en[p2]);
+                        int i = edge.popFront(edge_bg[p2], edge_en[p2]);
+                        --path_sz[p2];
+                        return {v, i};
+                    };
+                }
+                else
+                {
+                    assert(v == path_en[p2]);
+                    rem = [&]() -> pii
+                    {
+                        int v = path.popBack(path_bg[p2], path_en[p2]);
+                        int i = edge.popBack(edge_bg[p2], edge_en[p2]);
+                        --path_sz[p2];
+                        return {v, i};
+                    };
+                }
+                curHash -= H[p1][0];
+                curHash -= H[p2][0];
+                int curEdge = edge_num;
+                while (path_sz[p2] > 0)
+                {
+                    pii cur = rem();
+                    int v = cur.fi;
+                    int newEdge = cur.se;
+                    where[v] = p1;
+                    add(cur.fi, curEdge);
+                    curEdge = newEdge;
+                }
+                badPath[p2] = true;
+                curHash += H[p1][0];
+            }
+            else
+            {
+                badPath[p1] = true;
+                for (int v = path_bg[p1]; v != -1; v = path.nxt[v])
+                    where[v] = -1;
+                int c = 0;
+                for (int e = edge_bg[p1]; e != -1; e = edge.nxt[e])
+                {
+                    col[e] = c;
+                    c ^= 1;
+                }
+                col[edge_num] = c;
+                if (!c) curHash += pw2[edge_num];
+            }
+            cout << curHash.a << endl;
+            /*debug(paths);
+            for (int p = 0; p < paths; ++p) if (!badPath[p])
+            {
+                debug(p);
+                cerr << "vtx: ";
+                for (int v = path_bg[p]; v != -1; v = path.nxt[v])
+                    cerr << v << ' ';
+                cerr << endl;
+                cerr << "edges: ";
+                for (int e = edge_bg[p]; e != -1; e = edge.nxt[e])
+                    cerr << e << ' ';
+                cerr << endl;
+            }
+            debug(curHash.a);/**/
+            edge_num++;
+        }
+        else
+        {
+            for (int i = 1; i < edge_num; ++i)
+                ncol[i] = col[i];
+            for (int p = 0; p < paths; ++p) if (!badPath[p])
+            {
+                int c = 0;
+                for (int i = edge_bg[p]; i != -1; i = edge.nxt[i])
+                {
+                    ncol[i] = c;
+                    c ^= 1;
+                }
+            }
+            int cntRed = 0;
+            for (int i = 1; i < edge_num; ++i)
+            {
+                if (!ncol[i]) ++cntRed;
+            }
+            cout << cntRed << ' ';
+            for (int i = 1; i < edge_num; ++i)
+                if (!ncol[i])
+                    cout << i << ' ';
+            cout << endl;
+        }
+        if (paths >= maxV || n >= maxV)
+        {
+            throw;
+            exit(0);
+        }
+    }
+
+    return 0;
+}

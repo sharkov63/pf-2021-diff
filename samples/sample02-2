@@ -1,0 +1,212 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define all(a) (a).begin(), (a).end()
+using ll = long long;
+using ull = unsigned long long;
+using pii = pair<int, int>;
+using pil = pair<int, ll>;
+using pli = pair<ll, int>;
+using pll = pair<ll, ll>;
+using ld = long double;
+template<typename T1, typename T2> bool chkmin(T1& x, T2 y) {
+  return y < x ? (x = y, true) : false;
+}
+template<typename T1, typename T2> bool chkmax(T1& x, T2 y) {
+  return y > x ? (x = y, true) : false;
+}
+void debug_out() {
+  cerr << endl;
+}
+template<typename T1, typename... T2> void debug_out(T1 A, T2... B) {
+  cerr << ' ' << A;
+  debug_out(B...);
+}
+template<typename T> void mdebug_out(T* a, int n) {
+  for (int i = 0; i < n; ++i) {
+    cerr << a[i] << ' ';
+  }
+  cerr << endl;
+}
+#ifdef DEBUG
+  #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+  #define mdebug(a, n) cerr << #a << ": ", mdebug_out(a, n)
+#else
+  #define debug(...) 1337
+  #define mdebug(a, n) 1337
+#endif
+template<typename T> ostream& operator << (ostream& stream, const vector<T>& a) {
+  for (auto& x : a) {
+    stream << x << ' ';
+  }
+  return stream;
+}
+template<typename T1, typename T2> ostream& operator << (ostream& stream, const pair<T1, T2>& p) {
+  return stream << p.first << ' ' << p.second;
+}
+
+const int N = 1000106;
+int n;
+string s[N];
+vector<int> G[N];
+int tin[N], tout[N];
+int where[N];
+int cnt[N];
+
+namespace aho {
+  const int maxV = N;
+  int V;
+  int go[maxV][26];
+  int idx[maxV];
+  int suflink[maxV];
+  int up[maxV];
+
+  int qu[maxV], qt;
+
+  void init() {
+    V = 1;
+    memset(idx, 255, sizeof idx);
+  }
+    
+  void add_trie(string& s, int id) {
+    int v = 0;
+    for (char c : s) {
+      c -= 'a';
+      if (go[v][c] == 0) {
+        go[v][c] = V++;
+      }
+      v = go[v][c];
+    }
+    idx[v] = id;
+  }
+
+  void build() {
+    qt = 0;
+    suflink[0] = up[0] = 0;
+    for (int c = 0; c < 26; ++c) {
+      if (go[0][c]) {
+        qu[qt++] = go[0][c];
+      }
+    }
+    for (int qi = 0; qi < qt; ++qi) {
+      int v = qu[qi];
+      if (idx[v] != -1) {
+        up[v] = v;
+      } else {
+        up[v] = up[suflink[v]];
+      }
+      G[suflink[v]].push_back(v);
+      for (int c = 0; c < 26; ++c) {
+        int& u = go[v][c];
+        if (!u) {
+          u = go[suflink[v]][c];
+        } else {
+          suflink[u] = go[suflink[v]][c];
+          qu[qt++] = u;
+        }
+      }
+    }
+  }
+}
+
+int timer;
+void dfs(int v) {
+  tin[v] = timer++;
+  for (int& u : G[v]) {
+    dfs(u);
+  }
+  tout[v] = timer - 1;
+}
+
+namespace fnw {
+  int f[N];
+  void add(int i, int d) {
+    for (++i; i < N; i += i & -i) {
+      f[i] += d;
+    }
+  }
+  int prf(int i) {
+    int res = 0;
+    for (; i >= 1; i -= i & -i) {
+      res += f[i];
+    }
+    return res;
+  }
+  int rsq(int l, int r) {
+    return prf(r + 1) - prf(l);
+  }
+}
+
+int32_t main() {
+#ifdef DEBUG
+  freopen("in", "r", stdin);
+#endif
+  ios::sync_with_stdio(0);
+  cin.tie(0);
+
+  cin >> n;
+  aho::init();
+  for (int i = 0; i < n; ++i) {
+    cin >> s[i];
+    aho::add_trie(s[i], i);
+  }
+  aho::build();
+  for (int v = 0; v < aho::V; ++v) {
+    if (aho::idx[v] != -1) {
+      where[aho::idx[v]] = v;
+    }
+  }
+  dfs(0);
+  int ans = 0;
+  for (int i = 0; i < n; ++i) {
+    int len = s[i].size();
+    vector<int> L(len, len), who(len, -1);
+    int v = 0;
+    for (int j = 0; j < len; ++j) {
+      v = aho::go[v][s[i][j] - 'a'];
+      fnw::add(tin[v], 1);
+      int u = aho::up[v];
+      int idx = aho::idx[u];
+      if (idx == i) {
+        u = aho::up[aho::suflink[v]];
+        idx = aho::idx[u];
+      }
+      if (idx != -1) {
+        L[j] = j + 1 - (int)s[idx].size();
+        who[j] = idx;
+      }
+    }
+    vector<int> cand;
+    int minsuf = len;
+    for (int j = len - 1; j >= 0; --j) {
+      if (L[j] <= j && minsuf > L[j]) {
+        cand.push_back(who[j]);
+      }
+      chkmin(minsuf, L[j]);
+    }
+    for (int t : cand) {
+      ++cnt[t];
+    }
+    for (int t : cand) {
+      int v = where[t];
+      int occ = fnw::rsq(tin[v], tout[v]);
+      if (occ == cnt[t]) {
+        ++ans;
+      }
+      cnt[t] = 0;
+    }
+    v = 0;
+    for (int j = 0; j < len; ++j) {
+      v = aho::go[v][s[i][j] - 'a'];
+      fnw::add(tin[v], -1);
+    }
+  }
+  cout << ans << '\n';
+
+  return 0;
+}

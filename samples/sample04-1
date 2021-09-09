@@ -1,0 +1,132 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define all(a) (a).begin(), (a).end()
+using ll = long long;
+using ull = unsigned long long;
+using pii = pair<int, int>;
+using pil = pair<int, ll>;
+using pli = pair<ll, int>;
+using pll = pair<ll, ll>;
+using ld = long double;
+template<typename T1, typename T2> bool chkmin(T1 &x, T2 y) { return y < x ? (x = y, true) : false; }
+template<typename T1, typename T2> bool chkmax(T1 &x, T2 y) { return y > x ? (x = y, true) : false; }
+void debug_out() { cerr << endl; }
+template<typename T1, typename... T2> void debug_out(T1 A, T2... B) { cerr << ' ' << A; debug_out(B...); }
+template<typename T> void mdebug_out(T* a, int n) { for (int i = 0; i < n; ++i) cerr << a[i] << ' '; cerr << endl; }
+#ifdef DEBUG
+    #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+    #define mdebug(a, n) cerr << #a << ": ", mdebug_out(a, n)
+#else
+    #define debug(...) 1337
+    #define mdebug(...) 1337
+#endif
+template<typename T> ostream& operator << (ostream& stream, vector<T> &v) { for (auto x : v) stream << x << ' '; return stream; }
+template<typename T1, typename T2> ostream& operator << (ostream& stream, pair<T1, T2> &a) { return stream << a.fi << ' ' << a.se; }
+
+const int N = 2003;
+int n, m;
+vector<int> A[N], B[N];
+map<vector<int>, int> cntA, cntB;
+map<vector<int>, vector<int>> Aidxes;
+
+int cbad[N];
+int col[N], ncol[N];
+
+bool _eq()
+{
+    for (int x = 0; x < n; ++x)
+        if (A[x] != B[x])
+            return false;
+    return true;
+}
+
+signed main()
+{
+#ifdef DEBUG
+    freopen("in", "r", stdin);
+#endif
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin >> n >> m;
+    for (int x = 0; x < n; ++x)
+    {
+        A[x].resize(m);
+        for (auto &e : A[x]) cin >> e;
+        cntA[A[x]]++;
+    }
+    for (int x = 0; x < n; ++x)
+    {
+        B[x].resize(m);
+        for (auto &e : B[x]) cin >> e;
+        cntB[B[x]]++;
+    }
+    if (cntA != cntB) return 0 * puts("-1");
+    if (_eq()) return 0 * puts("0");
+    for (int x = n - 1; x >= 0; --x)
+        Aidxes[A[x]].push_back(x);
+    vector<int> need_ord;
+    for (int x = 0; x < n; ++x)
+    {
+        auto &v = Aidxes[B[x]];
+        if (v.empty()) throw;
+        int x0 = v.back();
+        v.pop_back();
+        need_ord.push_back(x0);
+    }
+    vector<int> zeroBad = {};
+    for (int y = 0; y < m; ++y)
+    {
+        for (int x = 0; x + 1 < n; ++x)
+            if (B[x][y] > B[x + 1][y])
+                ++cbad[y];
+        if (!cbad[y])
+            zeroBad.push_back(y);
+    }
+    vector<int> ans;
+    for (; !zeroBad.empty(); zeroBad.pop_back())
+    {
+        int y = zeroBad.back();
+        int colors = 1;
+        ncol[0] = 1;
+        for (int x = 1; x < n; ++x)
+        {
+            if (col[x] > col[x - 1] || A[x][y] > A[x - 1][y])
+                ncol[x] = colors++;
+            else
+                ncol[x] = ncol[x - 1];
+            if (col[x] == col[x - 1] && ncol[x] > ncol[x - 1])
+            {
+                for (int y = 0; y < m; ++y)
+                    if (A[x - 1][y] > A[x][y])
+                        if (--cbad[y] == 0)
+                            zeroBad.push_back(y);
+            }
+        }
+        ans.push_back(y);
+    }
+    reverse(all(ans));
+    vector<int> ord(n);
+    iota(all(ord), 0);
+    for (int y : ans)
+    {
+        stable_sort(all(ord), [&](int x1, int x2) -> bool
+        {
+            return A[x1][y] < A[x2][y];
+        });
+    }
+    if (ord != need_ord)
+        return 0 * puts("-1");
+    cout << ans.size() << '\n';
+    for (int c : ans)
+        cout << c + 1 << ' ';
+    cout << '\n';
+    
+    return 0;
+}
