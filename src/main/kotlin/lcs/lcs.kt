@@ -1,5 +1,8 @@
 package lcs
 
-fun longestCommonSubsequence(a: Array<Int>, b: Array<Int>): Array<Pair<Int, Int>> {
-    TODO()
+import trie.*
+
+fun longestCommonSubsequence(a: Array<Trie.Node?>, b: Array<Trie.Node?>): Array<Pair<Int, Int>> {
+    TODO("Make this a template function")
+    TODO("Write LCS")
 }
