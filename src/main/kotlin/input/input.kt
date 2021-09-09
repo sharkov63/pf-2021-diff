@@ -1,5 +1,7 @@
 package input
 
-fun readFile(fileName: String): Array<String> {
-    TODO()
+import java.io.File
+
+fun readFile(fileName: String): List<String> {
+    return File(fileName).readLines()
 }

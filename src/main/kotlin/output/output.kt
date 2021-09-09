@@ -1,5 +1,5 @@
 package output
 
-fun printResult(input1: Array<String>, input2: Array<String>, lcs: Array<Pair<Int, Int>>) {
+fun printResult(input1: List<String>, input2: List<String>, lcs: Array<Pair<Int, Int>>) {
     TODO()
 }
