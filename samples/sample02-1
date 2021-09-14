@@ -14,180 +14,119 @@ using pil = pair<int, ll>;
 using pli = pair<ll, int>;
 using pll = pair<ll, ll>;
 using ld = long double;
-template<typename T1, typename T2> bool chkmin(T1& x, T2 y) {
-  return y < x ? (x = y, true) : false;
-}
-template<typename T1, typename T2> bool chkmax(T1& x, T2 y) {
-  return y > x ? (x = y, true) : false;
-}
-void debug_out() {
-  cerr << endl;
-}
-template<typename T1, typename... T2> void debug_out(T1 A, T2... B) {
-  cerr << ' ' << A;
-  debug_out(B...);
-}
-template<typename T> void mdebug_out(T* a, int n) {
-  for (int i = 0; i < n; ++i) {
-    cerr << a[i] << ' ';
-  }
-  cerr << endl;
-}
+template<typename T1, typename T2> bool chkmin(T1 &x, T2 y) { return y < x ? (x = y, true) : false; }
+template<typename T1, typename T2> bool chkmax(T1 &x, T2 y) { return y > x ? (x = y, true) : false; }
+void debug_out() { cerr << endl; }
+template<typename T1, typename... T2> void debug_out(T1 A, T2... B) { cerr << ' ' << A; debug_out(B...); }
+template<typename T> void mdebug_out(T* a, int n) { for (int i = 0; i < n; ++i) cerr << a[i] << ' '; cerr << endl; }
 #ifdef DEBUG
-  #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
-  #define mdebug(a, n) cerr << #a << ": ", mdebug_out(a, n)
+    #define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+    #define mdebug(a, n) cerr << #a << ": ", mdebug_out(a, n)
 #else
-  #define debug(...) 1337
-  #define mdebug(a, n) 1337
+    #define debug(...) 1337
+    #define mdebug(...) 1337
 #endif
+template<typename T> ostream& operator << (ostream& stream, vector<T> &v) { for (auto x : v) stream << x << ' '; return stream; }
+template<typename T1, typename T2> ostream& operator << (ostream& stream, pair<T1, T2> &a) { return stream << a.fi << ' ' << a.se; }
 
-const int N = 1000106;
-int n;
-string s[N];
-vector<int> G[N];
-int tin[N], tout[N];
+const int N = 2003;
+int n, m;
+vector<int> A[N], B[N];
+map<vector<int>, int> cntA, cntB;
+map<vector<int>, vector<int>> Aidxes;
 
-namespace aho {
-  const int maxV = N;
-  int V;
-  int go[maxV][26];
-  int idx[maxV];
-  int suflink[maxV];
-  int up[maxV];
+int cbad[N];
+int col[N], ncol[N];
 
-  int qu[maxV], qt;
-
-  void init() {
-    V = 1;
-    memset(idx, 255, sizeof idx);
-  }
-    
-  void add_trie(string& s, int id) {
-    int v = 0;
-    for (char c : s) {
-      c -= 'a';
-      if (go[v][c] == 0) {
-        go[v][c] = V++;
-      }
-      v = go[v][c];
-    }
-    idx[v] = id;
-  }
-
-  void build() {
-    qt = 0;
-    suflink[0] = up[0] = 0;
-    for (int c = 0; c < 26; ++c) {
-      if (go[0][c]) {
-        qu[qt++] = go[0][c];
-      }
-    }
-    for (int qi = 0; qi < qt; ++qi) {
-      int v = qu[qi];
-      if (idx[v] != -1) {
-        up[v] = v;
-      } else {
-        up[v] = up[suflink[v]];
-      }
-      G[suflink[v]].push_back(v);
-      for (int c = 0; c < 26; ++c) {
-        int& u = go[v][c];
-        if (!u) {
-          u = go[suflink[v]][c];
-        } else {
-          suflink[u] = go[suflink[v]][c];
-          qu[qt++] = u;
-        }
-      }
-    }
-  }
+bool _eq()
+{
+    for (int x = 0; x < n; ++x)
+        if (A[x] != B[x])
+            return false;
+    return true;
 }
 
-int timer;
-void dfs(int v) {
-  tin[v] = timer++;
-  for (int& u : G[v]) {
-    dfs(u);
-  }
-  tout[v] = timer - 1;
-}
-
-namespace fnw {
-  int f[N];
-  void add(int i, int d) {
-    for (++i; i < N; i += i & -i) {
-      f[i] += d;
-    }
-  }
-  int prf(int i) {
-    int res = 0;
-    for (; i >= 1; i -= i & -i) {
-      res += f[i];
-    }
-    return res;
-  }
-  int rsq(int l, int r) {
-    return prf(r + 1) - prf(l);
-  }
-}
-
-int32_t main() {
+signed main()
+{
 #ifdef DEBUG
-  freopen("in", "r", stdin);
+    freopen("in", "r", stdin);
 #endif
-  ios::sync_with_stdio(0);
-  cin.tie(0);
+    ios::sync_with_stdio(0);
+    cin.tie(0);
 
-  cin >> n;
-  aho::init();
-  for (int i = 0; i < n; ++i) {
-    cin >> s[i];
-    aho::add_trie(s[i], i);
-  }
-  aho::build();
-  dfs(0);
-  int ans = 0;
-  for (int i = 0; i < n; ++i) {
-    int len = s[i].size();
-    vector<int> L(len, len), vtx(len, -1);
-    int v = 0;
-    for (int j = 0; j < len; ++j) {
-      v = aho::go[v][s[i][j] - 'a'];
-      int u = aho::up[v];
-      int idx = aho::idx[u];
-      if (idx == i) {
-        u = aho::up[aho::suflink[v]];
-        idx = aho::idx[u];
-      }
-      if (idx != -1) {
-        L[j] = j + 1 - (int)s[idx].size();
-        vtx[j] = u;
-      }
+    cin >> n >> m;
+    for (int x = 0; x < n; ++x)
+    {
+        A[x].resize(m);
+        for (auto &e : A[x]) cin >> e;
+        cntA[A[x]]++;
     }
-    //debug(i);
-    //mdebug(L, len);
-    vector<pii> ord;
-    for (int j = len - 1; j >= 0; --j) {
-      if (vtx[j] != -1) {
-        int u = vtx[j];
-        int idx = aho::idx[u];
-        ord.emplace_back(-(int)s[idx].size(), u);
-      }
+    for (int x = 0; x < n; ++x)
+    {
+        B[x].resize(m);
+        for (auto &e : B[x]) cin >> e;
+        cntB[B[x]]++;
     }
-    sort(all(ord));
-    for (pii& e : ord) {
-      int u = e.second;
-      if (fnw::rsq(tin[u], tout[u]) == 0) {
-        ++ans;
-      }
-      fnw::add(tin[u], 1);
+    if (cntA != cntB) return 0 * puts("-1");
+    if (_eq()) return 0 * puts("0");
+    for (int x = n - 1; x >= 0; --x)
+        Aidxes[A[x]].push_back(x);
+    vector<int> need_ord;
+    for (int x = 0; x < n; ++x)
+    {
+        auto &v = Aidxes[B[x]];
+        if (v.empty()) throw;
+        int x0 = v.back();
+        v.pop_back();
+        need_ord.push_back(x0);
     }
-    for (pii& e : ord) {
-      int u = e.second;
-      fnw::add(tin[u], -1);
+    vector<int> zeroBad = {};
+    for (int y = 0; y < m; ++y)
+    {
+        for (int x = 0; x + 1 < n; ++x)
+            if (B[x][y] > B[x + 1][y])
+                ++cbad[y];
+        if (!cbad[y])
+            zeroBad.push_back(y);
     }
-  }
-  cout << ans << '\n';
-
-  return 0;
+    vector<int> ans;
+    for (; !zeroBad.empty(); zeroBad.pop_back())
+    {
+        int y = zeroBad.back();
+        int colors = 1;
+        ncol[0] = 1;
+        for (int x = 1; x < n; ++x)
+        {
+            if (col[x] > col[x - 1] || A[x][y] > A[x - 1][y])
+                ncol[x] = colors++;
+            else
+                ncol[x] = ncol[x - 1];
+            if (col[x] == col[x - 1] && ncol[x] > ncol[x - 1])
+            {
+                for (int y = 0; y < m; ++y)
+                    if (A[x - 1][y] > A[x][y])
+                        if (--cbad[y] == 0)
+                            zeroBad.push_back(y);
+            }
+        }
+        ans.push_back(y);
+    }
+    reverse(all(ans));
+    vector<int> ord(n);
+    iota(all(ord), 0);
+    for (int y : ans)
+    {
+        stable_sort(all(ord), [&](int x1, int x2) -> bool
+        {
+            return A[x1][y] < A[x2][y];
+        });
+    }
+    if (ord != need_ord)
+        return 0 * puts("-1");
+    cout << ans.size() << '\n';
+    for (int c : ans)
+        cout << c + 1 << ' ';
+    cout << '\n';
+    
+    return 0;
 }
