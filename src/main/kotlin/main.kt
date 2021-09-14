@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
         lineNodePointer2[i] = trie.insert(input2[i])
     }
 
-    val lcs : Array<Pair<Int, Int>> = longestCommonSubsequence(lineNodePointer1, lineNodePointer2)
+    val lcs : Array<Pair<Int, Int>> = longestCommonSubsequence(lineNodePointer1, lineNodePointer2) { x, y -> x === y }
 
     printResult(input1, input2, lcs)
 }

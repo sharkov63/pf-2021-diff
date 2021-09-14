@@ -4,11 +4,13 @@ package lcs
  * Finds any longest common subsequence (LCS) of two sequences a and b
  * using quadratic dynamic programming approach.
  *
+ * Uses "equals" predicate to decide of two elements of type T are equal.
+ *
  * Returns an array of pairs (i, j),
  * where first indices form the found subsequence in a,
  * and second indices form the found subsequence in b.
  */
-fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>): Array<Pair<Int, Int>> {
+fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>, equals: (T, T) -> Boolean): Array<Pair<Int, Int>> {
     // lcsLen[i][j] is the length of the longest common subsequence of prefixes a[0..i-1] and b[0..j-1]
     val lcsLen = Array(a.size + 1) { Array(b.size + 1) { 0 } }
 
@@ -29,7 +31,7 @@ fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>): Array<Pair<Int, Int>
             lcsLen[i][j] = lcsLen[i][j - 1]
             lcsPrv[i][j] = 2
         }
-        if (a[i - 1] == b[j - 1] && lcsLen[i - 1][j - 1] + 1 > lcsLen[i][j]) {
+        if (equals(a[i - 1], b[j - 1]) && lcsLen[i - 1][j - 1] + 1 > lcsLen[i][j]) {
             // take both a[i - 1] and b[j - 1]
             lcsLen[i][j] = lcsLen[i - 1][j - 1] + 1
             lcsPrv[i][j] = 0

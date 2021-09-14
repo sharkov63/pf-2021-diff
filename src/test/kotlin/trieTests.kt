@@ -10,12 +10,12 @@ internal class trieTests {
         val node2 = t.insert("abacabaxx")
         val node3 = t.insert("abb")
         val node4 = t.insert("abacaba")
-        assertNotEquals(node1, node2)
-        assertNotEquals(node1, node3)
-        assertEquals(node1, node4)
-        assertNotEquals(node2, node3)
-        assertNotEquals(node2, node4)
-        assertNotEquals(node3, node4)
+        assert(node1 !== node2)
+        assert(node1 !== node3)
+        assert(node1 === node4)
+        assert(node2 !== node3)
+        assert(node2 !== node4)
+        assert(node3 !== node4)
     }
 
     @Test
@@ -25,12 +25,12 @@ internal class trieTests {
         val node2 = t.insert("aббЪ")
         val node3 = t.insert("aбб")
         val node4 = t.insert("абб")
-        assertNotEquals(node1, node2)
-        assertNotEquals(node1, node3)
-        assertEquals(node1, node4)
-        assertNotEquals(node2, node3)
-        assertNotEquals(node2, node4)
-        assertNotEquals(node3, node4)
+        assert(node1 !== node2)
+        assert(node1 !== node3)
+        assert(node1 === node4)
+        assert(node2 !== node3)
+        assert(node2 !== node4)
+        assert(node3 !== node4)
     }
 
     @Test
@@ -40,11 +40,32 @@ internal class trieTests {
         val node2 = t.insert("������")
         val node3 = t.insert("����������������")
         val node4 = t.insert("\uFDD0\uFDD1\uFDD2\uFDD3\uFDD4\uFDD5\uFDD6\uFDD7\uFDD8\uFDD9\uFDDA\uFDDB\uFDDC\uFDDD\uFDDE\uFDDF\uFDE0\uFDE1\uFDE2\uFDE3\uFDE4\uFDE5\uFDE6\uFDE7\uFDE8\uFDE9\uFDEA\uFDEB\uFDEC\uFDED\uFDEE\uFDEF")
-        assertNotEquals(node1, node2)
-        assertNotEquals(node1, node3)
-        assertEquals(node1, node4)
-        assertNotEquals(node2, node3)
-        assertNotEquals(node2, node4)
-        assertNotEquals(node3, node4)
+        assert(node1 !== node2)
+        assert(node1 !== node3)
+        assert(node1 === node4)
+        assert(node2 !== node3)
+        assert(node2 !== node4)
+        assert(node3 !== node4)
+    }
+
+    @Test
+    fun trieTest4() {
+        val t = Trie()
+        t.insert("ab")
+        t.insert("aaa")
+        t.insert("aab")
+        val node1 = t.insert("a")
+        val node2 = t.insert("aa")
+        assert(node1 !== node2)
+    }
+
+    @Test
+    fun trieTest5() {
+        val t = Trie()
+        val node1 = t.insert("a")
+        val node2 = t.insert("b")
+        assert(node1 !== node2)
+        assert(node1 != node2)
+        assert(node1.children == node2.children)
     }
 }
