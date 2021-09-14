@@ -21,8 +21,6 @@ fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>, equals: (T, T) -> Boo
     // lcsLen[i][j] is the length of the longest common subsequence of prefixes a[0..i-1] and b[0..j-1]
     val lcsLen = Array(a.size + 1) { Array(b.size + 1) { 0 } }
 
-
-
     // lcsRestoreInfo[i][j] instructs what to do with last elements
     // of prefixes a[0..i-1] and b[0..j-1] to get the LCS:
     //   TAKE_BOTH   if both elements a[i - 1] and b[j - 1] are taken in the subsequence
@@ -58,7 +56,7 @@ fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>, equals: (T, T) -> Boo
     var j = b.size
     var len = lcsLen[i][j]
     val answer = Array(len) { Pair(-1, -1) }
-    // Restore the LCS backwards using lcsPrv
+    // Restore the LCS backwards using lcsRestoreInfo
     while (len > 0) {
         when (lcsRestoreInfo[i][j]) {
             LcsRestoreInfo.TAKE_BOTH -> {
