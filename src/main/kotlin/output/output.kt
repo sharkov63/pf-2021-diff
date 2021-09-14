@@ -34,9 +34,9 @@ fun printResult(input1: List<String>, input2: List<String>, lcs: Array<Pair<Int,
     data class Line(val type: LineType, val index1: Int? = null, val index2: Int? = null) {
         fun getLine(): String {
             return if (index1 != null)
-                input1[index1 - 1]
+                input1[index1 - 1];
             else if (index2 != null)
-                input2[index2 - 1]
+                input2[index2 - 1];
             else
                 ""
         }
