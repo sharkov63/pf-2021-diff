@@ -4,7 +4,7 @@ import lcs.*
 internal class lcsTests {
 
     private fun <T> lcsTestTemplate(a: Array<T>, b: Array<T>, lcsLength: Int) {
-        val lcs = longestCommonSubsequence(a, b)
+        val lcs = longestCommonSubsequence(a, b) { x, y -> x == y }
         assertEquals(lcs.size, lcsLength)
         for (t in lcs.indices) {
             val (i, j) = lcs[t]
