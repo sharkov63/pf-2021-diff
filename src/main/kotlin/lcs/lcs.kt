@@ -8,66 +8,88 @@ enum class LcsRestoreInfo {
 }
 
 /*
- * Finds any longest common subsequence (LCS) of two sequences a and b
- * using quadratic dynamic programming approach.
+ * Finds any longest common subsequence (LCS) of two sequences a and b.
  *
  * Uses "equals" predicate to decide of two elements of type T are equal.
  *
  * Returns an array of pairs (i, j),
  * where first indices form the found subsequence in a,
  * and second indices form the found subsequence in b.
+ *
+ * The algorithm is "Hirschberg algorithm" derived from usual quadratic DP approach,
+ * which runs in O(N*M) time and O(M + log(n)) space.
  */
 fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>, equals: (T, T) -> Boolean): Array<Pair<Int, Int>> {
-    // lcsLen[i][j] is the length of the longest common subsequence of prefixes a[0..i-1] and b[0..j-1]
-    val lcsLen = Array(a.size + 1) { Array(b.size + 1) { 0 } }
+    if (a.isEmpty() || b.isEmpty()) return arrayOf()
 
-    // lcsRestoreInfo[i][j] instructs what to do with last elements
-    // of prefixes a[0..i-1] and b[0..j-1] to get the LCS:
-    //   TAKE_BOTH   if both elements a[i - 1] and b[j - 1] are taken in the subsequence
-    //   SKIP_A      if a[i - 1] is not taken in the subsequence
-    //   SKIP_B      if b[j - 1] is not taken in the subsequence
-    val lcsRestoreInfo = Array(a.size + 1) { Array(b.size + 1) { LcsRestoreInfo.UNKNOWN } }
+    data class DpState(val len: Int = 0, val link: Int = -1)
 
-    fun recalc(i: Int, j: Int) {
-        if (lcsLen[i - 1][j] >= lcsLen[i][j - 1]) {
-            // throw away a[i - 1]
-            lcsLen[i][j] = lcsLen[i - 1][j]
-            lcsRestoreInfo[i][j] = LcsRestoreInfo.SKIP_A
-        } else {
-            // throw away b[j - 1]
-            lcsLen[i][j] = lcsLen[i][j - 1]
-            lcsRestoreInfo[i][j] = LcsRestoreInfo.SKIP_B
-        }
-        if (equals(a[i - 1], b[j - 1]) && lcsLen[i - 1][j - 1] + 1 > lcsLen[i][j]) {
-            // take both a[i - 1] and b[j - 1]
-            lcsLen[i][j] = lcsLen[i - 1][j - 1] + 1
-            lcsRestoreInfo[i][j] = LcsRestoreInfo.TAKE_BOTH
-        }
-    }
+    val dpLayer = Array(2) { Array(b.size + 1) { DpState() } }
+    val answer: MutableList<Pair<Int, Int>> = mutableListOf()
 
-    // Calculating DP
-    for (i in 1..a.size) {
-        for (j in 1..b.size) {
-            recalc(i, j)
-        }
-    }
-
-    var i = a.size
-    var j = b.size
-    var len = lcsLen[i][j]
-    val answer = Array(len) { Pair(-1, -1) }
-    // Restore the LCS backwards using lcsRestoreInfo
-    while (len > 0) {
-        when (lcsRestoreInfo[i][j]) {
-            LcsRestoreInfo.TAKE_BOTH -> {
-                --i
-                --j
-                answer[--len] = Pair(i, j)
+    /*
+     * solve(start1, end1, start2, end2) finds a LCS of sequences a[start1, end1) and b[start2, end2).
+     * The corresponding pairs (i, j) of the LCS are pushed back into answer.
+     * This function uses two global layers (dpLayer[0/1]) to calculate DP for the sake of optimisation.
+     */
+    fun solve(start1: Int, end1: Int, start2: Int, end2: Int) {
+        if (end1 <= start1) return
+        if (end1 - start1 == 1) {
+            // There is only one element in the first sequence => just do naive check
+            for (j in start2 until end2) {
+                if (a[start1] == b[j]) {
+                    answer.add(Pair(start1, j))
+                    break
+                }
             }
-            LcsRestoreInfo.SKIP_A -> i--
-            LcsRestoreInfo.SKIP_B -> j--
-            else -> break
+            return
         }
+
+        // Split the rows by half
+        val mid1: Int = (start1 + end1) / 2
+
+        // We calculate normal quadratic DP,
+        // but instead of storing usual restore information,
+        // we store an index j, which means
+        // the optimal LCS path visits state (mid1, j).
+
+        // Prepare two global DP layers.
+        // Note that the first index i is always taken modulo 2.
+        dpLayer[0].fill(DpState(), start2, end2 + 1)
+        dpLayer[1].fill(DpState(), start2, end2 + 1)
+        for (i in start1 + 1..end1) {
+            // Normal DP relaxation
+            dpLayer[i % 2][start2] = dpLayer[(i % 2) xor 1][start2]
+            for (j in start2 + 1..end2) {
+                if (dpLayer[(i % 2) xor 1][j].len >= dpLayer[i % 2][j - 1].len) {
+                    dpLayer[i % 2][j] = dpLayer[(i % 2) xor 1][j]
+                } else {
+                    dpLayer[i % 2][j] = dpLayer[i % 2][j - 1]
+                }
+                if (equals(a[i - 1], b[j - 1]) && dpLayer[(i % 2) xor 1][j - 1].len + 1 > dpLayer[i % 2][j].len) {
+                    dpLayer[i % 2][j] = DpState(dpLayer[(i % 2) xor 1][j - 1].len + 1, dpLayer[(i % 2) xor 1][j - 1].link)
+                }
+            }
+            // We reached the row mid1, now we should always remember at which column we visited it
+            if (i == mid1)
+                for (j in start2..end2)
+                    dpLayer[i % 2][j] = DpState(dpLayer[i % 2][j].len, j)
+        }
+
+        val mid2 = dpLayer[end1 % 2][end2].link
+
+        // Now we know the optimal LCS path visits (mid1, mid2)
+        // So we can split our task into two subtasks.
+        solve(start1, mid1, start2, mid2)
+        solve(mid1, end1, mid2, end2)
     }
-    return answer
+
+    solve(0, a.size, 0, b.size)
+
+    // Convert MutableList to Array.
+    // I have found no easier way to do so.
+    val answerArray = Array(answer.size) { Pair(-1, -1) }
+    for (i in answer.indices)
+        answerArray[i] = answer[i]
+    return answerArray
 }
