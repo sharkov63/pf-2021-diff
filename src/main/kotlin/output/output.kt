@@ -1,5 +1,6 @@
 package output
 
+import java.io.File
 import java.lang.Integer.max
 
 // Text
@@ -32,9 +33,28 @@ enum class LineType {
     ADDED,
 }
 
-fun printResult(input1: List<String>, input2: List<String>, lcs: Array<Pair<Int, Int>>) {
-    val indexLabelLength1 = input1.size.toString().length
-    val indexLabelLength2 = input2.size.toString().length
+fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs: List<Pair<Int, Int>>) {
+    val indexLabelLength1 = lineCount1.toString().length
+    val indexLabelLength2 = lineCount2.toString().length
+
+    /*
+     * Instead of storing all lines of the , we read them as they are required.
+     */
+    class LineReader(file: File) {
+        val reader = file.bufferedReader()
+        var nextLineToRead = 0
+        var currentLine = ""
+
+        fun getLineByIndex(index: Int): String {
+            while (nextLineToRead <= index) {
+                currentLine = reader.readLine()
+                nextLineToRead++
+            }
+            return currentLine
+        }
+    }
+    val lreader1 = LineReader(file1)
+    val lreader2 = LineReader(file2)
 
     /*
      * Line data class contains a line that can potentially be printed.
@@ -45,9 +65,9 @@ fun printResult(input1: List<String>, input2: List<String>, lcs: Array<Pair<Int,
     data class Line(val type: LineType, val index1: Int? = null, val index2: Int? = null) {
         fun getLine(): String {
             return if (index1 != null)
-                input1[index1 - 1]
+                lreader1.getLineByIndex(index1 - 1)
             else if (index2 != null)
-                input2[index2 - 1]
+                lreader2.getLineByIndex(index2 - 1)
             else
                 ""
         }

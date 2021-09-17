@@ -1,7 +1,7 @@
-import input.*
 import trie.*
 import lcs.*
 import output.*
+import java.io.File
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
@@ -11,24 +11,27 @@ fun main(args: Array<String>) {
         throw Exception("Error: please specify the second file")
     }
 
-    // Read
-    val fileName1 = args[0]
-    val fileName2 = args[1]
-    val input1: List<String> = readFile(fileName1)
-    val input2: List<String> = readFile(fileName2)
+    val file1 = File(args[0])
+    val file2 = File(args[1])
 
-    // Build a trie on all lines from files
+    // Build a trie on all lines from two files
+    // Save links to corresponding trie nodes in two lists
+
     val trie = Trie()
-    val lineNodePointer1 = Array<Trie.Node?>(input1.size) { null }
-    for (i in input1.indices) {
-        lineNodePointer1[i] = trie.insert(input1[i])
+
+    val lineNodeLink1: MutableList<Trie.Node> = mutableListOf()
+    file1.forEachLine { line ->
+        lineNodeLink1.add(trie.insert(line))
     }
-    val lineNodePointer2 = Array<Trie.Node?>(input2.size) { null }
-    for (i in input2.indices) {
-        lineNodePointer2[i] = trie.insert(input2[i])
+    val lineNodeLink2: MutableList<Trie.Node> = mutableListOf()
+    file2.forEachLine { line ->
+        lineNodeLink2.add(trie.insert(line))
     }
 
-    val lcs : Array<Pair<Int, Int>> = longestCommonSubsequence(lineNodePointer1, lineNodePointer2) { x, y -> x === y }
+    val lineCount1 = lineNodeLink1.size
+    val lineCount2 = lineNodeLink2.size
 
-    printResult(input1, input2, lcs)
+    val lcs = longestCommonSubsequence(lineNodeLink1.toList(), lineNodeLink2.toList()) { x, y -> x === y }
+
+    printResult(file1, file2, lineCount1, lineCount2, lcs)
 }

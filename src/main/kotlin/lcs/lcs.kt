@@ -8,19 +8,19 @@ enum class LcsRestoreInfo {
 }
 
 /*
- * Finds any longest common subsequence (LCS) of two sequences a and b.
+ * Finds any longest common subsequence (LCS) of two lists a and b.
  *
  * Uses "equals" predicate to decide of two elements of type T are equal.
  *
- * Returns an array of pairs (i, j),
+ * Returns a list of pairs (i, j),
  * where first indices form the found subsequence in a,
  * and second indices form the found subsequence in b.
  *
  * The algorithm is "Hirschberg algorithm" derived from usual quadratic DP approach,
  * which runs in O(N*M) time and O(M + log(n)) space.
  */
-fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>, equals: (T, T) -> Boolean): Array<Pair<Int, Int>> {
-    if (a.isEmpty() || b.isEmpty()) return arrayOf()
+fun <T> longestCommonSubsequence(a: List<T>, b: List<T>, equals: (T, T) -> Boolean): List<Pair<Int, Int>> {
+    if (a.isEmpty() || b.isEmpty()) return listOf()
 
     data class DpState(val len: Int = 0, val link: Int = -1)
 
@@ -86,10 +86,5 @@ fun <T> longestCommonSubsequence(a: Array<T>, b: Array<T>, equals: (T, T) -> Boo
 
     solve(0, a.size, 0, b.size)
 
-    // Convert MutableList to Array.
-    // I have found no easier way to do so.
-    val answerArray = Array(answer.size) { Pair(-1, -1) }
-    for (i in answer.indices)
-        answerArray[i] = answer[i]
-    return answerArray
+    return answer.toList()
 }
