@@ -1,7 +1,6 @@
 package output
 
 import java.io.File
-import java.lang.Integer.max
 
 // Text
 const val TEXT_RESET = "\u001B[0m"
@@ -38,7 +37,7 @@ fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs:
     val indexLabelLength2 = lineCount2.toString().length
 
     /*
-     * Instead of storing all lines of the , we read them as they are required.
+     * Instead of storing all lines of the files, we read them as they are required.
      */
     class LineReader(file: File) {
         val reader = file.bufferedReader()
@@ -92,92 +91,74 @@ fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs:
     }
 
     // Form a complete list of lines
-    val lines: MutableList<Line> = mutableListOf()
-    var x = 0
-    var y = 0
-    for ((i, j) in lcs) {
-        while (x < i) {
-            lines.add(Line(LineType.DELETED, x + 1, null))
-            ++x
+    var lines: MutableList<Line> = mutableListOf()
+    var nextLineIndex1 = 0
+    var nextLineIndex2 = 0
+    for ((lineIndex1, lineIndex2) in lcs) {
+        while (nextLineIndex1 < lineIndex1) {
+            lines.add(Line(LineType.DELETED, nextLineIndex1 + 1, null))
+            ++nextLineIndex1
         }
-        while (y < j) {
-            lines.add(Line(LineType.ADDED, null, y + 1))
-            ++y
+        while (nextLineIndex2 < lineIndex2) {
+            lines.add(Line(LineType.ADDED, null, nextLineIndex2 + 1))
+            ++nextLineIndex2
         }
-        lines.add(Line(LineType.COMMON, x + 1, y + 1))
-        ++x
-        ++y
+        lines.add(Line(LineType.COMMON, lineIndex1 + 1, lineIndex2 + 1))
+        ++nextLineIndex1
+        ++nextLineIndex2
+    }
+
+    if (lines.find { it.type != LineType.COMMON } == null) {
+        println(CYAN_BACKGROUND + TEXT_BLACK + "Two files are identical!" + TEXT_RESET)
+        return
     }
 
     // A hunk is a block of several consecutive lines.
     // Two hunks are separated by a consecutive block of $COMMON_LINES_TO_SEPARATE_HUNK or more common lines.
     // Each hunk can contain no more than $MAX_COMMON_LINES_ON_BORDER common lines at its' beginning and its' end.
 
-    if (lines.find { line -> line.type != LineType.COMMON } == null) {
-        println(CYAN_BACKGROUND + TEXT_BLACK + "Two files are identical!" + TEXT_RESET)
-        return
-    }
+    while (lines.find { it.type != LineType.COMMON } != null) {
+        // A non-common line upcoming => a new hunk begins
 
-    var hunkBegin = 0
-    while (hunkBegin < lines.size) {
-        // Find where the hunk begins:
-        // search for next non-common line
-        val borderHunkBegin = hunkBegin
-        while (hunkBegin < lines.size && lines[hunkBegin].type == LineType.COMMON)
-            ++hunkBegin
-        if (hunkBegin == lines.size) {
-            // No changed lines => no more hunks
-            break
-        }
-        // Add first common lines
-        hunkBegin = max(borderHunkBegin, hunkBegin - MAX_COMMON_LINES_ON_BORDER)
-
-        // Find where the hunk ends:
-        // search for next large block of common lines
-        var hunkEnd = hunkBegin
-        var consectutiveCommonLines = 0
-        while (hunkEnd < lines.size) {
-            if (lines[hunkEnd].type == LineType.COMMON) {
-                ++consectutiveCommonLines
-                if (consectutiveCommonLines >= COMMON_LINES_TO_SEPARATE_HUNK) {
-                    // Found a large enough block of common lines
-                    // Hunk ends here somewhere
-                    hunkEnd = hunkEnd - COMMON_LINES_TO_SEPARATE_HUNK + MAX_COMMON_LINES_ON_BORDER + 1
-                    break
-                }
-            } else {
-                consectutiveCommonLines = 0
-            }
-            ++hunkEnd
+        // Drop explicit common lines before the hunk
+        val hunkBegin = lines.indexOfFirst { it.type != LineType.COMMON }
+        if (hunkBegin > MAX_COMMON_LINES_ON_BORDER) {
+            val dropN = hunkBegin - MAX_COMMON_LINES_ON_BORDER
+            lines = lines.drop(dropN).toMutableList()
         }
 
-        // Now hunk is ready to be printed
+        // Find where the hunk ends
+
+        // Count the number of consecutive common lines up until every point
+        val commonLinesBlockLength = lines.scan(0) { commonLines, line ->
+            if (line.type == LineType.COMMON)
+                commonLines + 1
+            else
+                0
+        }
+        // The hunk ends when the block of consecutive common lines is too big
+        var hunkEnd = commonLinesBlockLength.indexOfFirst { it >= COMMON_LINES_TO_SEPARATE_HUNK }
+        if (hunkEnd == -1)
+            hunkEnd = lines.size
+        else
+            hunkEnd = hunkEnd - COMMON_LINES_TO_SEPARATE_HUNK + MAX_COMMON_LINES_ON_BORDER
+
+        // Now slice the hunk out
+        val hunk = lines.slice(0 until hunkEnd)
 
         // Print range info
-        var startingLine1 = 0
-        var changedLines1 = 0
-        var startingLine2 = 0
-        var changedLines2 = 0
-        for (i in hunkBegin until hunkEnd) {
-            val line = lines[i]
-            if (line.index1 != null) {
-                if (startingLine1 == 0)
-                    startingLine1 = line.index1
-                ++changedLines1
-            }
-            if (line.index2 != null) {
-                if (startingLine2 == 0)
-                    startingLine2 = line.index2
-                ++changedLines2
-            }
-        }
+        val firstLine1 = hunk.firstOrNull { it.type != LineType.ADDED }
+        val firstLine2 = hunk.firstOrNull { it.type != LineType.DELETED }
+        val startingLine1 = firstLine1?.index1 ?: 0
+        val changedLines1 = hunk.count { it.type != LineType.ADDED }
+        val startingLine2 = firstLine2?.index2 ?: 0
+        val changedLines2 = hunk.count { it.type != LineType.DELETED }
         printRangeInfo(startingLine1, changedLines1, startingLine2, changedLines2)
 
-        // Now print lines in the hunk
-        for (i in hunkBegin until hunkEnd)
-            lines[i].print()
+        // Print the hunk
+        hunk.forEach { it.print() }
 
-        // Move on to the next hunk
-        hunkBegin = hunkEnd
+        // Drop the hunk from the list
+        lines = lines.drop(hunk.size).toMutableList()
     }
 }

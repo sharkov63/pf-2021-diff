@@ -28,11 +28,11 @@ fun <T> longestCommonSubsequence(a: List<T>, b: List<T>, equals: (T, T) -> Boole
     val answer: MutableList<Pair<Int, Int>> = mutableListOf()
 
     /*
-     * solve(start1, end1, start2, end2) finds a LCS of sequences a[start1, end1) and b[start2, end2).
+     * findLCS(start1, end1, start2, end2) finds a LCS of sequences a[start1, end1) and b[start2, end2).
      * The corresponding pairs (i, j) of the LCS are pushed back into answer.
      * This function uses two global layers (dpLayer[0/1]) to calculate DP for the sake of optimisation.
      */
-    fun solve(start1: Int, end1: Int, start2: Int, end2: Int) {
+    fun findLCS(start1: Int, end1: Int, start2: Int, end2: Int) {
         if (end1 <= start1) return
         if (end1 - start1 == 1) {
             // There is only one element in the first sequence => just do naive check
@@ -80,11 +80,11 @@ fun <T> longestCommonSubsequence(a: List<T>, b: List<T>, equals: (T, T) -> Boole
 
         // Now we know the optimal LCS path visits (mid1, mid2)
         // So we can split our task into two subtasks.
-        solve(start1, mid1, start2, mid2)
-        solve(mid1, end1, mid2, end2)
+        findLCS(start1, mid1, start2, mid2)
+        findLCS(mid1, end1, mid2, end2)
     }
 
-    solve(0, a.size, 0, b.size)
+    findLCS(0, a.size, 0, b.size)
 
     return answer.toList()
 }
