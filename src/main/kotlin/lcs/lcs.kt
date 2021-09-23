@@ -1,20 +1,13 @@
 package lcs
 
-enum class LcsRestoreInfo {
-    TAKE_BOTH,
-    SKIP_A,
-    SKIP_B,
-    UNKNOWN,
-}
-
-/*
- * Finds any longest common subsequence (LCS) of two lists a and b.
+/**
+ * Finds any longest common subsequence (LCS) of two lists [a] and [b].
  *
- * Uses "equals" predicate to decide of two elements of type T are equal.
+ * Uses [equals] predicate to decide of two elements of type [T] are equal.
  *
  * Returns a list of pairs (i, j),
- * where first indices form the found subsequence in a,
- * and second indices form the found subsequence in b.
+ * where first indices form the found subsequence in [a],
+ * and second indices form the found subsequence in [b].
  *
  * The algorithm is "Hirschberg algorithm" derived from usual quadratic DP approach,
  * which runs in O(N*M) time and O(M + log(n)) space.
@@ -27,11 +20,10 @@ fun <T> longestCommonSubsequence(a: List<T>, b: List<T>, equals: (T, T) -> Boole
     val dpLayer = Array(2) { Array(b.size + 1) { DpState() } }
     val answer: MutableList<Pair<Int, Int>> = mutableListOf()
 
-    /*
-     * findLCS(start1, end1, start2, end2) finds a LCS of sequences a[start1, end1) and b[start2, end2).
-     * The corresponding pairs (i, j) of the LCS are pushed back into answer.
-     * This function uses two global layers (dpLayer[0/1]) to calculate DP for the sake of optimisation.
-     */
+
+    // findLCS(start1, end1, start2, end2) finds a LCS of sequences a[start1, end1) and b[start2, end2).
+    // The corresponding pairs (i, j) of the LCS are pushed back into answer in the correct order.
+    // This function uses two global layers (dpLayer[0/1]) to calculate DP for the sake of optimisation.
     fun findLCS(start1: Int, end1: Int, start2: Int, end2: Int) {
         if (end1 <= start1) return
         if (end1 - start1 == 1) {
