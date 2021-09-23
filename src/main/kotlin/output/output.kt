@@ -7,21 +7,12 @@ const val TEXT_RESET = "\u001B[0m"
 const val TEXT_BLACK = "\u001B[30m"
 const val TEXT_RED = "\u001B[31m"
 const val TEXT_GREEN = "\u001B[32m"
-const val TEXT_YELLOW = "\u001B[33m"
-const val TEXT_BLUE = "\u001B[34m"
-const val TEXT_PURPLE = "\u001B[35m"
-const val TEXT_CYAN = "\u001B[36m"
-const val TEXT_WHITE = "\u001B[37m"
 
 // Background
-const val BLACK_BACKGROUND = "\u001b[40m"
 const val RED_BACKGROUND = "\u001b[41m"
 const val GREEN_BACKGROUND = "\u001b[42m"
-const val YELLOW_BACKGROUND = "\u001b[43m"
 const val BLUE_BACKGROUND = "\u001b[44m"
-const val PURPLE_BACKGROUND = "\u001b[45m"
 const val CYAN_BACKGROUND = "\u001b[46m"
-const val WHITE_BACKGROUND = "\u001b[47m"
 
 const val COMMON_LINES_TO_SEPARATE_HUNK = 7
 const val MAX_COMMON_LINES_ON_BORDER = 3
@@ -32,12 +23,17 @@ enum class LineType {
     ADDED,
 }
 
+/**
+ * Prints the diff, given [file1] and [file2],
+ * their corresponding [lineCount1] and [lineCount2]
+ * and the found longest common subsequence [lcs].
+ */
 fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs: List<Pair<Int, Int>>) {
     val indexLabelLength1 = lineCount1.toString().length
     val indexLabelLength2 = lineCount2.toString().length
 
-    /*
-     * Instead of storing all lines of the files, we read them as they are required.
+    /**
+     * LineReader successively reads lines from given [file], as they are requiered.
      */
     class LineReader(file: File) {
         val reader = file.bufferedReader()
@@ -52,23 +48,22 @@ fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs:
             return currentLine
         }
     }
+
     val lreader1 = LineReader(file1)
     val lreader2 = LineReader(file2)
 
-    /*
-     * Line data class contains a line that can potentially be printed.
-     * A line can be one of three types (common, deleted, added), specified by LineType enum.
+
+    /**
+     * [Line] data class contains a line that can potentially be printed.
+     * A line can be one of three types (common, deleted, added), specified by [LineType] enum.
      * A line also contains indexes of the corresponding string in input.
      * The string itself is not stored here.
      */
     data class Line(val type: LineType, val index1: Int? = null, val index2: Int? = null) {
-        fun getLine(): String {
-            return if (index1 != null)
-                lreader1.getLineByIndex(index1 - 1)
-            else if (index2 != null)
-                lreader2.getLineByIndex(index2 - 1)
-            else
-                ""
+        fun getLine() = when {
+            index1 != null -> lreader1.getLineByIndex(index1 - 1)
+            index2 != null -> lreader2.getLineByIndex(index2 - 1)
+            else -> ""
         }
 
         fun print() {
@@ -86,8 +81,9 @@ fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs:
     }
 
     fun printRangeInfo(startingLine1: Int, changedLines1: Int, startingLine2: Int, changedLines2: Int) {
-        val line = " ".repeat(indexLabelLength1 + 1 + indexLabelLength2 + 3) + "@@ -$startingLine1,$changedLines1 +$startingLine2,$changedLines2 @@"
-        println("$BLUE_BACKGROUND$TEXT_BLACK$line$TEXT_RESET")
+        val tabs = " ".repeat(indexLabelLength1 + 1 + indexLabelLength2 + 3)
+        val rangeInfo = "@@ -$startingLine1,$changedLines1 +$startingLine2,$changedLines2 @@"
+        println("$BLUE_BACKGROUND$TEXT_BLACK$tabs$rangeInfo$TEXT_RESET")
     }
 
     // Form a complete list of lines
@@ -137,11 +133,11 @@ fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs:
                 0
         }
         // The hunk ends when the block of consecutive common lines is too big
-        var hunkEnd = commonLinesBlockLength.indexOfFirst { it >= COMMON_LINES_TO_SEPARATE_HUNK }
-        if (hunkEnd == -1)
-            hunkEnd = lines.size
+        val commonBlockEnd = commonLinesBlockLength.indexOfFirst { it >= COMMON_LINES_TO_SEPARATE_HUNK }
+        val hunkEnd = if (commonBlockEnd == -1)
+            lines.size
         else
-            hunkEnd = hunkEnd - COMMON_LINES_TO_SEPARATE_HUNK + MAX_COMMON_LINES_ON_BORDER
+            commonBlockEnd - COMMON_LINES_TO_SEPARATE_HUNK + MAX_COMMON_LINES_ON_BORDER
 
         // Now slice the hunk out
         val hunk = lines.slice(0 until hunkEnd)
