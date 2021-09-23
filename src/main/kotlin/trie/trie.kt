@@ -1,13 +1,13 @@
 package trie
 
-/*
+/**
  * A pointer implementation of "trie" data structure.
  * See https://en.wikipedia.org/wiki/Trie
  */
 class Trie {
-    /*
+    /**
      * A node in trie.
-     * Links to children nodes are contained in a MutableMap.
+     * Links to children nodes are contained in a [MutableMap].
      */
     class Node {
         var children: MutableMap<Char, Node> = mutableMapOf()
@@ -15,8 +15,8 @@ class Trie {
 
     private val root = Node()
 
-    /*
-     * Insert a string into trie.
+    /**
+     * Insert string [str] into trie.
      * Returns a pointer to the corresponding node in the trie.
      */
     fun insert(str: String): Node {
