@@ -1,10 +1,10 @@
 import kotlin.test.*
 import trie.*
 
-internal class trieTests {
+internal class TrieTests {
 
     @Test
-    fun trieTest1() {
+    fun trieTwoEqualOutOfFour() {
         val t = Trie()
         val node1 = t.insert("abacaba")
         val node2 = t.insert("abacabaxx")
@@ -19,11 +19,11 @@ internal class trieTests {
     }
 
     @Test
-    fun trieTest2() {
+    fun trieCyrillicWithLatin() {
         val t = Trie()
         val node1 = t.insert("абб")
         val node2 = t.insert("aббЪ")
-        val node3 = t.insert("aбб")
+        val node3 = t.insert("aбб") // first 'a' is latin, not cyrillic
         val node4 = t.insert("абб")
         assert(node1 !== node2)
         assert(node1 !== node3)
@@ -34,7 +34,7 @@ internal class trieTests {
     }
 
     @Test
-    fun trieTest3() {
+    fun trieWeirdSymbols() {
         val t = Trie()
         val node1 = t.insert("\uFDD0\uFDD1\uFDD2\uFDD3\uFDD4\uFDD5\uFDD6\uFDD7\uFDD8\uFDD9\uFDDA\uFDDB\uFDDC\uFDDD\uFDDE\uFDDF\uFDE0\uFDE1\uFDE2\uFDE3\uFDE4\uFDE5\uFDE6\uFDE7\uFDE8\uFDE9\uFDEA\uFDEB\uFDEC\uFDED\uFDEE\uFDEF")
         val node2 = t.insert("������")
@@ -49,7 +49,7 @@ internal class trieTests {
     }
 
     @Test
-    fun trieTest4() {
+    fun trieReferenceEquality1() {
         val t = Trie()
         t.insert("ab")
         t.insert("aaa")
@@ -60,7 +60,7 @@ internal class trieTests {
     }
 
     @Test
-    fun trieTest5() {
+    fun trieReferenceEquality2() {
         val t = Trie()
         val node1 = t.insert("a")
         val node2 = t.insert("b")
