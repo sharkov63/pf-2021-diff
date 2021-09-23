@@ -103,6 +103,10 @@ fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs:
         ++nextLineIndex1
         ++nextLineIndex2
     }
+    for (idx in nextLineIndex1 until lineCount1)
+        lines.add(Line(LineType.DELETED, idx + 1, null))
+    for (idx in nextLineIndex2 until lineCount2)
+        lines.add(Line(LineType.ADDED, null, idx + 1))
 
     if (lines.find { it.type != LineType.COMMON } == null) {
         println(CYAN_BACKGROUND + TEXT_BLACK + "Two files are identical!" + TEXT_RESET)
