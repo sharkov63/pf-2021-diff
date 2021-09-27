@@ -18,11 +18,6 @@ internal class DiffTests {
 
         val programOutput = stream.toString()
 
-//        println(programOutput)
-
-//        val file = File("${testPath}-o")
-//        file.writeText(programOutput)
-
         val ofile = File("$testPath-o")
         val expectedOutput = ofile.readText()
         assertEquals(expectedOutput, programOutput)
