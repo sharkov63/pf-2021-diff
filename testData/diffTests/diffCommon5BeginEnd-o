@@ -1,0 +1,11 @@
+[44m[30m        @@ -3,8 +3,8 @@[0m
+ 3  3   Common line 3.
+ 4  4   Common line 4.
+ 5  5   Common line 5.
+[31m 6    - [30m[41mDeleted line[0m
+[31m 7    - [30m[41mModfied line[0m
+[32m    6 + [30m[42mModfied line_[0m
+[32m    7 + [30m[42mAdded line[0m
+ 8  8   Common line 1.
+ 9  9   Common line 2.
+10 10   Common line 3.

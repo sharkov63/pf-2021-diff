@@ -1,0 +1,6 @@
+[44m[30m      @@ -1,4 +1,4 @@[0m
+1 1   This is a simple diff test.
+[31m2   - [30m[41mThe test contains four lines.[0m
+[32m  2 + [30m[42mThe second line has been changed.[0m
+3 3   This is the third line.
+4 4   The last line and the file is over.

@@ -1,0 +1,8 @@
+[44m[30m      @@ -3,6 +3,6 @@[0m
+3 3   Common line 3
+4 4   Common line 4
+5 5   Common line 5
+[31m6   - [30m[41mLine 6 will be changed[0m
+[32m  6 + [30m[42mLine 6 has been changed[0m
+7 7   Common line 7
+8 8   Common line 8

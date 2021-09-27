@@ -1,0 +1,9 @@
+[44m[30m        @@ -8,7 +8,7 @@[0m
+ 8  8   Common line 8
+ 9  9   Common line 9
+10 10   Common line 10
+[31m11    - [30m[41mLine 11 will be changed[0m
+[32m   11 + [30m[42mLine 11 has been changed[0m
+12 12   Common line 12
+13 13   Common line 13
+14 14   Common line 14
