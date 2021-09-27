@@ -1,6 +1,7 @@
 package output
 
 import java.io.File
+import kotlin.math.*
 
 // Text
 const val TEXT_RESET = "\u001B[0m"
@@ -138,10 +139,11 @@ fun printResult(file1: File, file2: File, lineCount1: Int, lineCount2: Int, lcs:
         }
         // The hunk ends when the block of consecutive common lines is too big
         val commonBlockEnd = commonLinesBlockLength.indexOfFirst { it >= COMMON_LINES_TO_SEPARATE_HUNK }
-        val hunkEnd = if (commonBlockEnd == -1)
-            lines.size
-        else
+        val hunkEnd = if (commonBlockEnd != -1) {
             commonBlockEnd - COMMON_LINES_TO_SEPARATE_HUNK + MAX_COMMON_LINES_ON_BORDER
+        } else {
+            lines.size - max(0, commonLinesBlockLength.last() - MAX_COMMON_LINES_ON_BORDER)
+        }
 
         // Now slice the hunk out
         val hunk = lines.slice(0 until hunkEnd)
